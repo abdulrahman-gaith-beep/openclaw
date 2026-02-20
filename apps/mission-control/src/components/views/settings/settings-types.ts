@@ -325,10 +325,10 @@ export const RISK_LEVEL_META: Record<RiskLevel, { label: string; color: string; 
 // --- Utility Functions ---
 
 export function loadSettings(): AppSettings {
-    if (typeof window === "undefined") return DEFAULT_SETTINGS;
+    if (typeof window === "undefined") {return DEFAULT_SETTINGS;}
     try {
         const stored = localStorage.getItem("mission_control_settings");
-        if (!stored) return DEFAULT_SETTINGS;
+        if (!stored) {return DEFAULT_SETTINGS;}
         return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
     } catch {
         return DEFAULT_SETTINGS;
@@ -336,7 +336,7 @@ export function loadSettings(): AppSettings {
 }
 
 export function saveSettings(settings: AppSettings): void {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {return;}
     try {
         localStorage.setItem("mission_control_settings", JSON.stringify(settings));
         // Dispatch storage event for cross-tab sync
@@ -369,7 +369,7 @@ export function applyTheme(theme: "light" | "dark"): void {
 }
 
 export function getStoredModelPreference(): ModelPreference | null {
-    if (typeof window === "undefined") return null;
+    if (typeof window === "undefined") {return null;}
     try {
         const stored = localStorage.getItem(MODEL_PREF_KEY);
         return stored ? JSON.parse(stored) : null;
@@ -380,10 +380,10 @@ export function getStoredModelPreference(): ModelPreference | null {
 
 export function formatFileSize(sizeStr: string): string {
     const bytes = parseInt(sizeStr, 10);
-    if (isNaN(bytes)) return sizeStr;
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    if (isNaN(bytes)) {return sizeStr;}
+    if (bytes < 1024) {return `${bytes} B`;}
+    if (bytes < 1024 * 1024) {return `${(bytes / 1024).toFixed(1)} KB`;}
+    if (bytes < 1024 * 1024 * 1024) {return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;}
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
@@ -392,11 +392,11 @@ export function formatRelativeTime(dateStr: string): string {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60_000);
-    if (diffMins < 1) return "just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffMins < 1) {return "just now";}
+    if (diffMins < 60) {return `${diffMins}m ago`;}
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffHours < 24) {return `${diffHours}h ago`;}
     const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 30) return `${diffDays}d ago`;
+    if (diffDays < 30) {return `${diffDays}d ago`;}
     return date.toLocaleDateString();
 }

@@ -34,7 +34,7 @@ interface CronFields {
 function expandField(field: string, min: number, max: number): number[] {
   if (field === "*") {
     const out: number[] = [];
-    for (let i = min; i <= max; i++) out.push(i);
+    for (let i = min; i <= max; i++) {out.push(i);}
     return out;
   }
 
@@ -43,15 +43,15 @@ function expandField(field: string, min: number, max: number): number[] {
     const [startStr, endStr] = field.split("-");
     const start = parseInt(startStr, 10);
     const end = parseInt(endStr, 10);
-    if (isNaN(start) || isNaN(end)) throw new Error(`Invalid cron range: ${field}`);
+    if (isNaN(start) || isNaN(end)) {throw new Error(`Invalid cron range: ${field}`);}
     const out: number[] = [];
-    for (let i = start; i <= end; i++) out.push(i);
+    for (let i = start; i <= end; i++) {out.push(i);}
     return out;
   }
 
   // Single number
   const num = parseInt(field, 10);
-  if (isNaN(num)) throw new Error(`Invalid cron field: ${field}`);
+  if (isNaN(num)) {throw new Error(`Invalid cron field: ${field}`);}
   return [num];
 }
 
@@ -134,7 +134,7 @@ class ScheduleEngine {
   private readonly CHECK_INTERVAL_MS = 60_000; // 1 minute
 
   start(): void {
-    if (this.timer) return;
+    if (this.timer) {return;}
     console.log("[ScheduleEngine] Starting scheduler");
     this.timer = setInterval(() => this.tick(), this.CHECK_INTERVAL_MS);
     // Run once immediately
@@ -159,7 +159,7 @@ class ScheduleEngine {
   }
 
   private async tick(): Promise<void> {
-    if (this.running) return; // Skip if previous tick still running
+    if (this.running) {return;} // Skip if previous tick still running
     this.running = true;
     try {
       const due = getDueSchedules();

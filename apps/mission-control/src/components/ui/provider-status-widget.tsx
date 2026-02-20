@@ -28,7 +28,7 @@ export function ProviderStatusWidget() {
                 fetch("/api/settings/api-keys/batch-status"),
                 fetch("/api/openclaw/status"),
             ]);
-            if (statusRes.ok) setData(await statusRes.json());
+            if (statusRes.ok) {setData(await statusRes.json());}
             if (gwRes.ok) {
                 const gwData = await gwRes.json();
                 setGatewayUp(gwData.connected === true);

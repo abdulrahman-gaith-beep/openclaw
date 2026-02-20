@@ -46,7 +46,7 @@ const TEXT_EXTENSIONS = new Set([
 
 function getExtension(filename: string): string {
   const idx = filename.lastIndexOf(".");
-  if (idx < 0) return "";
+  if (idx < 0) {return "";}
   return filename.slice(idx + 1).toLowerCase();
 }
 
@@ -54,9 +54,9 @@ function inferCategory(file: File): "image" | "video" | "archive" | "pdf" | "cod
   const type = (file.type || "").toLowerCase();
   const ext = getExtension(file.name);
 
-  if (type.startsWith("image/")) return "image";
-  if (type.startsWith("video/")) return "video";
-  if (type === "application/pdf" || ext === "pdf") return "pdf";
+  if (type.startsWith("image/")) {return "image";}
+  if (type.startsWith("video/")) {return "video";}
+  if (type === "application/pdf" || ext === "pdf") {return "pdf";}
 
   if (
     type.includes("zip") ||
@@ -77,7 +77,7 @@ function inferCategory(file: File): "image" | "video" | "archive" | "pdf" | "cod
     return "text";
   }
 
-  if (type.startsWith("text/")) return "text";
+  if (type.startsWith("text/")) {return "text";}
   return "unknown";
 }
 

@@ -26,13 +26,13 @@ interface GatewayModel {
 
 function extractUsageProviders(usagePayload: unknown): Set<string> {
   const active = new Set<string>();
-  if (!usagePayload || typeof usagePayload !== "object") return active;
+  if (!usagePayload || typeof usagePayload !== "object") {return active;}
 
   const providers = (usagePayload as { providers?: unknown[] }).providers;
-  if (!Array.isArray(providers)) return active;
+  if (!Array.isArray(providers)) {return active;}
 
   for (const entry of providers) {
-    if (!entry || typeof entry !== "object") continue;
+    if (!entry || typeof entry !== "object") {continue;}
     const provider = (entry as { provider?: unknown }).provider;
     if (typeof provider === "string" && provider.trim()) {
       active.add(provider.trim());
@@ -43,8 +43,8 @@ function extractUsageProviders(usagePayload: unknown): Set<string> {
 
 function toModelRef(model: GatewayModel): string {
   const modelId = model.id?.trim();
-  if (!modelId) return "";
-  if (modelId.includes("/")) return modelId;
+  if (!modelId) {return "";}
+  if (modelId.includes("/")) {return modelId;}
   const provider = model.provider?.trim();
   return provider ? `${provider}/${modelId}` : modelId;
 }
@@ -125,7 +125,7 @@ export const GET = withApiGuard(async () => {
     const byProvider: Record<string, GatewayModel[]> = {};
     for (const model of models) {
       const provider = model.provider || "unknown";
-      if (!byProvider[provider]) byProvider[provider] = [];
+      if (!byProvider[provider]) {byProvider[provider] = [];}
       byProvider[provider].push(model);
     }
 
@@ -141,12 +141,12 @@ export const GET = withApiGuard(async () => {
       "xai",
       "meta",
     ];
-    const sortedProviders = Object.keys(byProvider).sort((a, b) => {
+    const sortedProviders = Object.keys(byProvider).toSorted((a, b) => {
       const ai = providerOrder.indexOf(a);
       const bi = providerOrder.indexOf(b);
-      if (ai >= 0 && bi >= 0) return ai - bi;
-      if (ai >= 0) return -1;
-      if (bi >= 0) return 1;
+      if (ai >= 0 && bi >= 0) {return ai - bi;}
+      if (ai >= 0) {return -1;}
+      if (bi >= 0) {return 1;}
       return a.localeCompare(b);
     });
 

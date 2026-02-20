@@ -160,7 +160,7 @@ export const FileAttachments = forwardRef<FileAttachmentsRef, FileAttachmentsPro
         const currentCount = attachments.length;
         const remaining = maxAttachments - currentCount;
 
-        if (remaining <= 0) return;
+        if (remaining <= 0) {return;}
 
         const filesToProcess = files.slice(0, remaining);
 
@@ -271,7 +271,7 @@ export const FileAttachments = forwardRef<FileAttachmentsRef, FileAttachmentsPro
         setIsDragging(false);
         dragCountRef.current = 0;
 
-        if (disabled) return;
+        if (disabled) {return;}
 
         const files = getFilesFromDrag(e.nativeEvent);
         if (files.length) {
@@ -284,7 +284,7 @@ export const FileAttachments = forwardRef<FileAttachmentsRef, FileAttachmentsPro
     // Paste handler - should be attached to parent input
     const handlePaste = useCallback(
       (e: ClipboardEvent) => {
-        if (disabled) return;
+        if (disabled) {return;}
 
         const files = getFilesFromClipboard(e);
         if (files.length) {

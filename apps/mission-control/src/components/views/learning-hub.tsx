@@ -402,11 +402,11 @@ const CURATED_LESSONS: Lesson[] = [
 
 function timeAgo(ts: number): string {
   const seconds = Math.floor((Date.now() - ts) / 1000);
-  if (seconds < 60) return "just now";
+  if (seconds < 60) {return "just now";}
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) {return `${minutes}m ago`;}
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) {return `${hours}h ago`;}
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
 }
@@ -422,16 +422,16 @@ function getSourceColor(source: string): string {
 }
 
 function getRatingStyle(rating: number): { bg: string; text: string; border: string } {
-  if (rating >= 90) return { bg: "bg-green-500/20", text: "text-green-400", border: "border-green-500/30" };
-  if (rating >= 80) return { bg: "bg-primary/20", text: "text-primary", border: "border-primary/30" };
-  if (rating >= 60) return { bg: "bg-orange-500/20", text: "text-orange-400", border: "border-orange-500/30" };
+  if (rating >= 90) {return { bg: "bg-green-500/20", text: "text-green-400", border: "border-green-500/30" };}
+  if (rating >= 80) {return { bg: "bg-primary/20", text: "text-primary", border: "border-primary/30" };}
+  if (rating >= 60) {return { bg: "bg-orange-500/20", text: "text-orange-400", border: "border-orange-500/30" };}
   return { bg: "bg-muted", text: "text-muted-foreground", border: "border-border" };
 }
 
 function readStoredJson<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
+  if (typeof window === "undefined") {return fallback;}
   const raw = localStorage.getItem(key);
-  if (!raw) return fallback;
+  if (!raw) {return fallback;}
   try {
     return JSON.parse(raw) as T;
   } catch {
@@ -458,7 +458,7 @@ function mergeLessons(existing: Lesson[], incoming: Lesson[]): Lesson[] {
         : lesson
     );
   }
-  return Array.from(byId.values()).sort((a, b) => b.rating - a.rating);
+  return Array.from(byId.values()).toSorted((a, b) => b.rating - a.rating);
 }
 
 function buildInitialLearningHubState() {
@@ -563,7 +563,7 @@ function FeatureBuildsList({
         return { lessonId, taskId, lesson, task };
       })
       .filter((e) => e.lesson)
-      .sort((a, b) => {
+      .toSorted((a, b) => {
         const aTime = a.task ? new Date(a.task.created_at).getTime() : 0;
         const bTime = b.task ? new Date(b.task.created_at).getTime() : 0;
         return bTime - aTime;
@@ -864,8 +864,8 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
 
   const handleBuildLesson = useCallback(
     async (lesson: Lesson) => {
-      if (buildingLessonIds.has(lesson.id)) return;
-      if (buildTaskByLesson[lesson.id]) return;
+      if (buildingLessonIds.has(lesson.id)) {return;}
+      if (buildTaskByLesson[lesson.id]) {return;}
 
       setBuildErrorByLesson((prev) => {
         const next = { ...prev };
@@ -1003,17 +1003,17 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
   // Filter lessons
   const filteredLessons = lessons
     .filter((lesson) => {
-      if (currentFilter === "elite") return lesson.rating >= 90;
-      if (currentFilter === "saved") return savedLessons.includes(lesson.id);
-      if (currentFilter === "tobuild") return toBuildLessons.includes(lesson.id);
-      if (currentFilter === "builds") return !!buildTaskByLesson[lesson.id];
+      if (currentFilter === "elite") {return lesson.rating >= 90;}
+      if (currentFilter === "saved") {return savedLessons.includes(lesson.id);}
+      if (currentFilter === "tobuild") {return toBuildLessons.includes(lesson.id);}
+      if (currentFilter === "builds") {return !!buildTaskByLesson[lesson.id];}
       if (currentFilter !== "all") {
         return lesson.category === currentFilter || lesson.tags.includes(currentFilter);
       }
       return true;
     })
     .filter((lesson) => {
-      if (!searchQuery) return true;
+      if (!searchQuery) {return true;}
       const q = searchQuery.toLowerCase();
       return (
         lesson.title.toLowerCase().includes(q) ||
@@ -1021,7 +1021,7 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
         lesson.tags.some((t) => t.toLowerCase().includes(q))
       );
     })
-    .sort((a, b) => b.rating - a.rating);
+    .toSorted((a, b) => b.rating - a.rating);
 
   const stats = {
     total: lessons.length,
@@ -1111,7 +1111,7 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
                             markNotificationRead(notif.id);
                             if (notif.lessonId) {
                               const lesson = lessons.find((l) => l.id === notif.lessonId);
-                              if (lesson) setSelectedLesson(lesson);
+                              if (lesson) {setSelectedLesson(lesson);}
                             }
                             setShowNotifications(false);
                           }}
@@ -1349,7 +1349,7 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (buildTaskId || isBuilding) return;
+                        if (buildTaskId || isBuilding) {return;}
                         void handleBuildLesson(lesson);
                       }}
                       disabled={isBuilding || !!buildTaskId}
@@ -1454,7 +1454,7 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
                 <Button
                   variant={buildTaskByLesson[selectedLesson.id] ? "default" : "outline"}
                   onClick={() => {
-                    if (buildTaskByLesson[selectedLesson.id]) return;
+                    if (buildTaskByLesson[selectedLesson.id]) {return;}
                     void handleBuildLesson(selectedLesson);
                   }}
                   disabled={

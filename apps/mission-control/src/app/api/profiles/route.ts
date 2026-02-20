@@ -63,7 +63,7 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
     );
 
     const existing = getProfile(id);
-    if (!existing) throw new UserError("Profile not found", 404);
+    if (!existing) {throw new UserError("Profile not found", 404);}
 
     const normalizedPatch: Record<string, unknown> = {};
 
@@ -103,7 +103,7 @@ export const DELETE = withApiGuard(async (request: NextRequest) => {
     });
 
     const existing = getProfile(id);
-    if (!existing) throw new UserError("Profile not found", 404);
+    if (!existing) {throw new UserError("Profile not found", 404);}
 
     // Prevent deleting the last profile
     if (listProfiles().length <= 1) {

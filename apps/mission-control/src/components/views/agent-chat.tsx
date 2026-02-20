@@ -145,7 +145,7 @@ export function AgentChat() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [favorites, setFavorites] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
+    if (typeof window === "undefined") {return [];}
     try {
       const stored = localStorage.getItem(FAVORITES_KEY);
       return stored ? (JSON.parse(stored) as string[]) : [];
@@ -154,7 +154,7 @@ export function AgentChat() {
     }
   });
   const [recentAgents, setRecentAgents] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
+    if (typeof window === "undefined") {return [];}
     try {
       const stored = localStorage.getItem(RECENT_KEY);
       return stored ? (JSON.parse(stored) as string[]) : [];
@@ -204,7 +204,7 @@ export function AgentChat() {
 
   // Get current chat state
   const currentChat = useMemo(() => {
-    if (!selectedAgent) return null;
+    if (!selectedAgent) {return null;}
     return (
       chatStates[selectedAgent.id] || {
         messages: [],
@@ -216,7 +216,7 @@ export function AgentChat() {
 
   // Filter agents
   const filteredAgents = useMemo(() => {
-    if (!searchQuery) return SPECIALIZED_AGENTS;
+    if (!searchQuery) {return SPECIALIZED_AGENTS;}
     const q = searchQuery.toLowerCase();
     return SPECIALIZED_AGENTS.filter(
       (a: SpecializedAgent) =>
@@ -314,7 +314,7 @@ export function AgentChat() {
 
   // Send message
   const sendMessage = useCallback(async () => {
-    if (!inputValue.trim() || !selectedAgent || currentChat?.isTyping) return;
+    if (!inputValue.trim() || !selectedAgent || currentChat?.isTyping) {return;}
 
     const userMessage: ChatMessage = {
       id: generateId(),
@@ -348,7 +348,7 @@ export function AgentChat() {
     // Send to each agent
     for (const agentId of agentsToConsult) {
       const agent = SPECIALIZED_AGENTS.find((a) => a.id === agentId);
-      if (!agent) continue;
+      if (!agent) {continue;}
 
       try {
         const res = await fetch("/api/chat", {
@@ -511,7 +511,7 @@ export function AgentChat() {
 
   // Copy system prompt
   const handleCopyPrompt = useCallback(async () => {
-    if (!selectedAgent) return;
+    if (!selectedAgent) {return;}
     await navigator.clipboard.writeText(selectedAgent.systemPrompt);
     setCopiedPrompt(true);
     setTimeout(() => setCopiedPrompt(false), 2000);
@@ -519,7 +519,7 @@ export function AgentChat() {
 
   // Export chat as markdown
   const exportChat = useCallback(() => {
-    if (!selectedAgent || !currentChat?.messages.length) return;
+    if (!selectedAgent || !currentChat?.messages.length) {return;}
 
     const md = [
       `# Chat with ${selectedAgent.name}`,
@@ -549,7 +549,7 @@ export function AgentChat() {
 
   // Save to task
   const handleSaveTask = useCallback(async () => {
-    if (!taskTitle.trim()) return;
+    if (!taskTitle.trim()) {return;}
     setSavingTask(true);
 
     try {
@@ -585,7 +585,7 @@ export function AgentChat() {
 
   // Clear chat
   const clearChat = useCallback(() => {
-    if (!selectedAgent) return;
+    if (!selectedAgent) {return;}
     setChatStates((prev) => ({
       ...prev,
       [selectedAgent.id]: {

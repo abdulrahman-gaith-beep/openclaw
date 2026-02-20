@@ -44,7 +44,7 @@ function getDbLazy() {
 /** Purge expired rate limit entries from the database. */
 function cleanupExpired(): void {
   const now = Date.now();
-  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS) {return;}
   lastCleanup = now;
 
   try {
@@ -81,7 +81,7 @@ export function checkRateLimit(
   config: Partial<RateLimitConfig> = {},
   requestId?: string
 ): NextResponse | null {
-  if (!RATE_LIMIT_ENABLED) return null;
+  if (!RATE_LIMIT_ENABLED) {return null;}
 
   cleanupExpired();
 
@@ -163,7 +163,7 @@ export function withRateLimit(
   return async (request: NextRequest) => {
     const requestId = request.headers.get("x-request-id") ?? undefined;
     const rateLimitError = checkRateLimit(request, config, requestId);
-    if (rateLimitError) return rateLimitError;
+    if (rateLimitError) {return rateLimitError;}
     const response = await handler(request);
     return attachRequestIdHeader(response, requestId);
   };

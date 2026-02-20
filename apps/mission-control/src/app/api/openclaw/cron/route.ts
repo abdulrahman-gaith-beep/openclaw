@@ -72,7 +72,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
       if (typeof payload.schedule === "string" && payload.schedule.length > 0) {
         normalizedPatch.schedule = payload.schedule;
       }
-      if (typeof payload.enabled === "boolean") normalizedPatch.enabled = payload.enabled;
+      if (typeof payload.enabled === "boolean") {normalizedPatch.enabled = payload.enabled;}
       if (Object.keys(normalizedPatch).length === 0) {
         throw new UserError("No fields to update", 400);
       }

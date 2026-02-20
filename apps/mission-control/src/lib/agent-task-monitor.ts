@@ -91,7 +91,7 @@ class AgentTaskMonitor {
     const monitor = this.monitors.get(sessionKey);
     if (monitor) {
       clearInterval(monitor.pollTimer);
-      if (monitor.timeoutTimer) clearTimeout(monitor.timeoutTimer);
+      if (monitor.timeoutTimer) {clearTimeout(monitor.timeoutTimer);}
       this.monitors.delete(sessionKey);
       console.log(
         `[AgentTaskMonitor] Monitoring stopped: session=${sessionKey}`
@@ -175,8 +175,8 @@ class AgentTaskMonitor {
    */
   private async pollForCompletion(sessionKey: string): Promise<void> {
     const monitor = this.monitors.get(sessionKey);
-    if (!monitor) return;
-    if (monitor.checking) return;
+    if (!monitor) {return;}
+    if (monitor.checking) {return;}
     monitor.checking = true;
 
     try {
@@ -216,7 +216,7 @@ class AgentTaskMonitor {
       );
     } finally {
       const refreshed = this.monitors.get(sessionKey);
-      if (refreshed) refreshed.checking = false;
+      if (refreshed) {refreshed.checking = false;}
     }
   }
 
@@ -302,7 +302,7 @@ class AgentTaskMonitor {
     reason: "timeout" | "error"
   ): Promise<void> {
     const monitor = this.monitors.get(sessionKey);
-    if (!monitor) return;
+    if (!monitor) {return;}
 
     const { taskId, agentId } = monitor;
 
@@ -334,7 +334,7 @@ class AgentTaskMonitor {
       this.stopMonitoring(sessionKey);
 
       const task = getTask(taskId);
-      if (!task || task.status !== "in_progress") return;
+      if (!task || task.status !== "in_progress") {return;}
 
       if (responseText) {
         addComment({

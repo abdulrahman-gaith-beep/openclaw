@@ -829,9 +829,9 @@ paths:
           content:
             application/json:
               schema:
-                \$ref: '#/components/schemas/Order'
+                $ref: '#/components/schemas/Order'
         '404':
-          \$ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/NotFound'
 \`\`\`
 
 ## RFC 7807 Problem Details
@@ -3103,7 +3103,7 @@ export function getAllCapabilities(): string[] {
   getSpecializedAgents().forEach((agent) => {
     agent.capabilities.forEach((cap) => caps.add(cap));
   });
-  return Array.from(caps).sort();
+  return Array.from(caps).toSorted();
 }
 
 // --- Team Templates ---

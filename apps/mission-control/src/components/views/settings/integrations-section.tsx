@@ -60,7 +60,7 @@ export function IntegrationsSection() {
     }, [fetchIntegrations]);
 
     const handleSave = async (serviceId: string) => {
-        if (!tokenInput.trim()) return;
+        if (!tokenInput.trim()) {return;}
         setSaving(true);
         try {
             const res = await fetch("/api/integrations", {
@@ -72,7 +72,7 @@ export function IntegrationsSection() {
                     username: usernameInput || undefined,
                 }),
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             const data = await res.json();
             // Update local state with the returned integration
             if (data.integration) {
@@ -96,7 +96,7 @@ export function IntegrationsSection() {
         setRemovingService(serviceId);
         try {
             const res = await fetch(`/api/integrations?service=${encodeURIComponent(serviceId)}`, { method: "DELETE" });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             setIntegrations((prev) => ({
                 ...prev,
                 [serviceId]: { configured: false, preview: null, username: null, teamId: null, updatedAt: null },

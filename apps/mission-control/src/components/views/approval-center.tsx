@@ -112,35 +112,35 @@ const PATTERN_SCOPE_CLASSES: Record<AllowlistPatternScope, string> = {
 };
 
 function normalizeErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) return error.message.trim();
+  if (error instanceof Error && error.message.trim()) {return error.message.trim();}
   return "Unexpected error while processing approvals.";
 }
 
 function formatRelativeTime(ms?: number): string {
-  if (!ms || !Number.isFinite(ms)) return "-";
+  if (!ms || !Number.isFinite(ms)) {return "-";}
   const delta = Date.now() - ms;
   const seconds = Math.max(0, Math.floor(delta / 1000));
-  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 60) {return `${seconds}s ago`;}
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) {return `${minutes}m ago`;}
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) {return `${hours}h ago`;}
   return `${Math.floor(hours / 24)}d ago`;
 }
 
 function formatAbsoluteTime(ms?: number): string {
-  if (!ms || !Number.isFinite(ms)) return "-";
+  if (!ms || !Number.isFinite(ms)) {return "-";}
   return new Date(ms).toLocaleString();
 }
 
 function formatExpiry(expiresAtMs?: number): string {
-  if (!expiresAtMs || !Number.isFinite(expiresAtMs)) return "No expiry";
+  if (!expiresAtMs || !Number.isFinite(expiresAtMs)) {return "No expiry";}
   const remaining = expiresAtMs - Date.now();
-  if (remaining <= 0) return "Expired";
+  if (remaining <= 0) {return "Expired";}
   const sec = Math.floor(remaining / 1000);
-  if (sec < 60) return `Expires in ${sec}s`;
+  if (sec < 60) {return `Expires in ${sec}s`;}
   const mins = Math.floor(sec / 60);
-  if (mins < 60) return `Expires in ${mins}m`;
+  if (mins < 60) {return `Expires in ${mins}m`;}
   const hours = Math.floor(mins / 60);
   return `Expires in ${hours}h`;
 }
@@ -151,18 +151,18 @@ function parseResolvedEvent(payload: unknown): {
   resolvedBy?: string;
   ts?: number;
 } | null {
-  if (!payload || typeof payload !== "object") return null;
+  if (!payload || typeof payload !== "object") {return null;}
   const record = payload as Record<string, unknown>;
   const id = typeof record.id === "string" ? record.id.trim() : "";
-  if (!id) return null;
+  if (!id) {return null;}
   const decision = typeof record.decision === "string" ? record.decision.trim() : undefined;
   const resolvedBy = typeof record.resolvedBy === "string" ? record.resolvedBy.trim() : undefined;
 
   let ts: number | undefined;
-  if (typeof record.ts === "number" && Number.isFinite(record.ts)) ts = record.ts;
+  if (typeof record.ts === "number" && Number.isFinite(record.ts)) {ts = record.ts;}
   if (typeof record.ts === "string") {
     const parsed = Number(record.ts);
-    if (Number.isFinite(parsed)) ts = parsed;
+    if (Number.isFinite(parsed)) {ts = parsed;}
   }
   return { id, decision, resolvedBy, ts };
 }
@@ -174,14 +174,14 @@ function splitByState(records: ApprovalRecord[]): {
   const pending: ApprovalRecord[] = [];
   const resolved: ApprovalRecord[] = [];
   for (const record of records) {
-    if (isApprovalResolved(record)) resolved.push(record);
-    else pending.push(record);
+    if (isApprovalResolved(record)) {resolved.push(record);}
+    else {pending.push(record);}
   }
   return { pending, resolved };
 }
 
 function trimCommand(command: string, max = 180): string {
-  if (command.length <= max) return command;
+  if (command.length <= max) {return command;}
   return `${command.slice(0, max - 1)}…`;
 }
 
@@ -194,7 +194,7 @@ function queueSortValue(approval: ApprovalRecord): number {
 }
 
 function sortHistory(records: ApprovalRecord[]): ApprovalRecord[] {
-  return [...records].sort((a, b) => approvalResolvedMs(b) - approvalResolvedMs(a));
+  return [...records].toSorted((a, b) => approvalResolvedMs(b) - approvalResolvedMs(a));
 }
 
 function upsertHistory(existing: ApprovalRecord[], incoming: ApprovalRecord): ApprovalRecord[] {
@@ -259,8 +259,8 @@ export function ApprovalCenter() {
 
   const fetchApprovals = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
-    if (!silent) setLoading(true);
-    if (silent) setRefreshing(true);
+    if (!silent) {setLoading(true);}
+    if (silent) {setRefreshing(true);}
 
     try {
       const res = await fetch("/api/openclaw/approvals", { cache: "no-store" });
@@ -289,20 +289,20 @@ export function ApprovalCenter() {
       const combined = [...parsedApprovals, ...parsedHistory];
       const { pending, resolved } = splitByState(combined);
 
-      setApprovals([...pending].sort((a, b) => queueSortValue(b) - queueSortValue(a)));
+      setApprovals([...pending].toSorted((a, b) => queueSortValue(b) - queueSortValue(a)));
       setHistory(sortHistory(resolved));
       setError(null);
       setLastUpdatedAt(Date.now());
     } catch (fetchError) {
       setError(normalizeErrorMessage(fetchError));
     } finally {
-      if (!silent) setLoading(false);
-      if (silent) setRefreshing(false);
+      if (!silent) {setLoading(false);}
+      if (silent) {setRefreshing(false);}
     }
   }, []);
 
   const scheduleRefresh = useCallback(() => {
-    if (refreshTimerRef.current) return;
+    if (refreshTimerRef.current) {return;}
     refreshTimerRef.current = setTimeout(() => {
       refreshTimerRef.current = null;
       fetchApprovals({ silent: true }).catch(() => {
@@ -317,7 +317,7 @@ export function ApprovalCenter() {
 
   const handleGatewayEvent = useCallback(
     (event: GatewayEvent) => {
-      if (event.type !== "gateway_event") return;
+      if (event.type !== "gateway_event") {return;}
       const eventName = (event.event || "").toLowerCase();
 
       if (eventName === "exec.approval.requested") {
@@ -327,13 +327,13 @@ export function ApprovalCenter() {
           setApprovals((prev) => {
             const idx = prev.findIndex((item) => item.id === incoming.id);
             if (idx === -1) {
-              return [incoming, ...prev].sort(
+              return [incoming, ...prev].toSorted(
                 (a, b) => queueSortValue(b) - queueSortValue(a)
               );
             }
             const next = [...prev];
             next[idx] = { ...next[idx], ...incoming };
-            return next.sort((a, b) => queueSortValue(b) - queueSortValue(a));
+            return next.toSorted((a, b) => queueSortValue(b) - queueSortValue(a));
           });
           setError(null);
           setLastUpdatedAt(Date.now());
@@ -539,7 +539,7 @@ export function ApprovalCenter() {
       if (riskFilter !== "all" && row.risk.level.toLowerCase() !== riskFilter) {
         return false;
       }
-      if (!q) return true;
+      if (!q) {return true;}
 
       const searchable = [
         row.approval.id,
@@ -561,13 +561,13 @@ export function ApprovalCenter() {
         return queueSortValue(a.approval) - queueSortValue(b.approval);
       }
       if (sortMode === "risk") {
-        if (b.risk.score !== a.risk.score) return b.risk.score - a.risk.score;
+        if (b.risk.score !== a.risk.score) {return b.risk.score - a.risk.score;}
         return queueSortValue(b.approval) - queueSortValue(a.approval);
       }
       if (sortMode === "expiry") {
         const aExpiry = a.approval.expiresAtMs ?? Number.POSITIVE_INFINITY;
         const bExpiry = b.approval.expiresAtMs ?? Number.POSITIVE_INFINITY;
-        if (aExpiry !== bExpiry) return aExpiry - bExpiry;
+        if (aExpiry !== bExpiry) {return aExpiry - bExpiry;}
         return queueSortValue(b.approval) - queueSortValue(a.approval);
       }
       return queueSortValue(b.approval) - queueSortValue(a.approval);
@@ -615,7 +615,7 @@ export function ApprovalCenter() {
   );
 
   const allowPatternHistoryImpact = useMemo<PatternHistoryImpact | null>(() => {
-    if (!selectedRow || !allowPatternPreview?.isValid) return null;
+    if (!selectedRow || !allowPatternPreview?.isValid) {return null;}
 
     const selectedAgent = selectedRow.approval.agentId || "main";
     const recent = sortHistory(history)
@@ -638,7 +638,7 @@ export function ApprovalCenter() {
         targetPath,
         cwd: entry.cwd,
       });
-      if (result) matched += 1;
+      if (result) {matched += 1;}
     }
 
     return { considered, matched, missingPath };
@@ -652,7 +652,7 @@ export function ApprovalCenter() {
   const expiringSoonCount = useMemo(
     () =>
       rows.filter((row) => {
-        if (!row.approval.expiresAtMs) return false;
+        if (!row.approval.expiresAtMs) {return false;}
         return row.approval.expiresAtMs - Date.now() <= 60_000;
       }).length,
     [rows]
@@ -687,7 +687,7 @@ export function ApprovalCenter() {
 
   const openDecisionDialog = useCallback(
     (decision: ConfirmDialogState["decision"]) => {
-      if (!selectedRow) return;
+      if (!selectedRow) {return;}
       if (decision === "allow-pattern") {
         const trimmed = allowPattern.trim();
         if (!trimmed) {
@@ -715,7 +715,7 @@ export function ApprovalCenter() {
   );
 
   const confirmPatternPreview = useMemo(() => {
-    if (!confirmDialog || confirmDialog.decision !== "allow-pattern") return null;
+    if (!confirmDialog || confirmDialog.decision !== "allow-pattern") {return null;}
     return previewAllowlistPattern({
       pattern: confirmDialog.pattern ?? "",
       targetPath: confirmDialog.approval.resolvedPath,
@@ -1279,7 +1279,7 @@ export function ApprovalCenter() {
       <Dialog
         open={!!confirmDialog}
         onOpenChange={(open) => {
-          if (!open) setConfirmDialog(null);
+          if (!open) {setConfirmDialog(null);}
         }}
       >
         <DialogContent>
@@ -1352,7 +1352,7 @@ export function ApprovalCenter() {
             </Button>
             <Button
               onClick={async () => {
-                if (!confirmDialog) return;
+                if (!confirmDialog) {return;}
                 const ok =
                   confirmDialog.decision === "allow-pattern"
                     ? await allowPatternForApproval(
@@ -1364,7 +1364,7 @@ export function ApprovalCenter() {
                       confirmDialog.approval,
                       confirmDialog.decision
                     );
-                if (ok) setConfirmDialog(null);
+                if (ok) {setConfirmDialog(null);}
               }}
               disabled={actionLoading === confirmDialog?.approval.id}
               className={

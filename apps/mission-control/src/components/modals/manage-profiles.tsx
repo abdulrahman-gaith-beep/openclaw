@@ -127,7 +127,7 @@ export function ManageProfilesDialog({
   // ── Create profile ──────────────────────────────────────────────────────
 
   const handleCreate = async () => {
-    if (!name.trim() || submitting) return;
+    if (!name.trim() || submitting) {return;}
     setSubmitting(true);
     try {
       await fetch("/api/profiles", {
@@ -150,7 +150,7 @@ export function ManageProfilesDialog({
   // ── Update profile ──────────────────────────────────────────────────────
 
   const handleUpdate = async () => {
-    if (!editingProfile || !name.trim() || submitting) return;
+    if (!editingProfile || !name.trim() || submitting) {return;}
     setSubmitting(true);
     try {
       await fetch("/api/profiles", {
@@ -174,11 +174,11 @@ export function ManageProfilesDialog({
   // ── Delete profile ──────────────────────────────────────────────────────
 
   const handleDelete = async (profile: Profile) => {
-    if (profiles.length <= 1) return;
+    if (profiles.length <= 1) {return;}
     const confirmed = window.confirm(
       `Are you sure you want to delete "${profile.name}"? This cannot be undone.`
     );
-    if (!confirmed) return;
+    if (!confirmed) {return;}
     await fetch(`/api/profiles?id=${profile.id}`, { method: "DELETE" });
     await refreshProfiles();
   };
@@ -237,7 +237,7 @@ export function ManageProfilesDialog({
   // ── Create workspace ────────────────────────────────────────────────────
 
   const handleCreateWorkspace = async () => {
-    if (!wsName.trim() || !wsId.trim() || !sharingProfile || creatingWorkspace) return;
+    if (!wsName.trim() || !wsId.trim() || !sharingProfile || creatingWorkspace) {return;}
     setCreatingWorkspace(true);
     try {
       const slugId = wsId.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
@@ -281,7 +281,7 @@ export function ManageProfilesDialog({
     const confirmed = window.confirm(
       `Delete workspace "${ws?.label || workspaceId}"? All tasks and data in this workspace will be permanently removed.`
     );
-    if (!confirmed) return;
+    if (!confirmed) {return;}
     setTogglingId(workspaceId);
     try {
       await apiFetch(`/api/workspaces?id=${workspaceId}`, { method: "DELETE" });
@@ -301,7 +301,7 @@ export function ManageProfilesDialog({
   // ── Sharing: toggle workspace access ────────────────────────────────────
 
   const toggleWorkspaceAccess = async (workspaceId: string) => {
-    if (!sharingProfile || togglingId) return;
+    if (!sharingProfile || togglingId) {return;}
     setTogglingId(workspaceId);
 
     const hasAccess = profileWorkspaceIds.has(workspaceId);

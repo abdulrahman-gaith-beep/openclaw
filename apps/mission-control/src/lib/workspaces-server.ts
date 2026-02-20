@@ -14,7 +14,7 @@ const VALID_WORKSPACE_IDS = new Set<string>(
  */
 export function isValidWorkspaceId(id: string): id is WorkspaceId {
   // Fast path: check hardcoded IDs first (avoids DB hit for common case)
-  if (VALID_WORKSPACE_IDS.has(id)) return true;
+  if (VALID_WORKSPACE_IDS.has(id)) {return true;}
 
   // Slow path: check database for dynamically-created workspaces
   try {

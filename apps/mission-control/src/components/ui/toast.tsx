@@ -64,7 +64,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
             }, dur);
         }
         return () => {
-            if (timerRef.current) clearTimeout(timerRef.current);
+            if (timerRef.current) {clearTimeout(timerRef.current);}
         };
     }, [toast.duration, onDismiss]);
 

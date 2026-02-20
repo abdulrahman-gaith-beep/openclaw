@@ -413,7 +413,7 @@ const TOOL_CATALOG: ToolCatalogEntry[] = [
 const CATEGORIES = ["All", ...Array.from(new Set(TOOL_CATALOG.map((t) => t.category)))];
 
 function navigateTo(viewId: string) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {return;}
   window.location.hash = viewId === "board" ? "" : viewId;
 }
 
@@ -447,8 +447,8 @@ function categoryEmoji(category: string) {
 }
 
 function summarizeResult(data: unknown): { title: string; lines: string[] } {
-  if (data == null) return { title: "No data", lines: [] };
-  if (typeof data === "string") return { title: "Text", lines: [data] };
+  if (data == null) {return { title: "No data", lines: [] };}
+  if (typeof data === "string") {return { title: "Text", lines: [data] };}
   if (typeof data === "number" || typeof data === "boolean") {
     return { title: "Value", lines: [String(data)] };
   }
@@ -468,11 +468,11 @@ function summarizeResult(data: unknown): { title: string; lines: string[] } {
 }
 
 function previewOne(value: unknown): string {
-  if (value == null) return "null";
-  if (typeof value === "string") return value.length > 70 ? `${value.slice(0, 70)}…` : value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  if (Array.isArray(value)) return `[${value.length} items]`;
-  if (typeof value === "object") return "{…}";
+  if (value == null) {return "null";}
+  if (typeof value === "string") {return value.length > 70 ? `${value.slice(0, 70)}…` : value;}
+  if (typeof value === "number" || typeof value === "boolean") {return String(value);}
+  if (Array.isArray(value)) {return `[${value.length} items]`;}
+  if (typeof value === "object") {return "{…}";}
   return String(value);
 }
 
@@ -517,7 +517,7 @@ export function ToolsPlayground() {
   }, [search, category]);
 
   // Sort favorites to top
-  const sortedTools = [...filteredTools].sort((a, b) => {
+  const sortedTools = [...filteredTools].toSorted((a, b) => {
     const af = favorites.has(a.tool) ? 0 : 1;
     const bf = favorites.has(b.tool) ? 0 : 1;
     return af - bf;
@@ -527,8 +527,8 @@ export function ToolsPlayground() {
     (tool: string) => {
       setFavorites((prev) => {
         const next = new Set(prev);
-        if (next.has(tool)) next.delete(tool);
-        else next.add(tool);
+        if (next.has(tool)) {next.delete(tool);}
+        else {next.add(tool);}
         localStorage.setItem("mc-tool-favorites", JSON.stringify([...next]));
         return next;
       });
@@ -622,7 +622,7 @@ export function ToolsPlayground() {
         const rawText = await res.text();
         const data = contentType.includes("application/json") ? JSON.parse(rawText) : null;
 
-        if (cancelled) return;
+        if (cancelled) {return;}
         const ok = Boolean(res.ok && data && data.ok === true);
         setGatewayOk(ok);
         setGatewayHint(
@@ -635,7 +635,7 @@ export function ToolsPlayground() {
                 : "Health probe failed",
         );
       } catch (e) {
-        if (cancelled) return;
+        if (cancelled) {return;}
         setGatewayOk(false);
         setGatewayHint(String(e));
       }

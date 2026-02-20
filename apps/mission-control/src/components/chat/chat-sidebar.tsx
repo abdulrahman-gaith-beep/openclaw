@@ -110,7 +110,7 @@ const STORAGE_KEYS = {
 } as const;
 
 function loadFromStorage<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
+  if (typeof window === "undefined") {return fallback;}
   try {
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : fallback;
@@ -120,7 +120,7 @@ function loadFromStorage<T>(key: string, fallback: T): T {
 }
 
 function saveToStorage<T>(key: string, data: T): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {return;}
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (e) {
@@ -149,10 +149,10 @@ function getDateGroup(dateString: string): DateGroup {
   weekAgo.setDate(weekAgo.getDate() - 7);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  if (date >= today) return "Today";
-  if (date >= yesterday) return "Yesterday";
-  if (date >= weekAgo) return "Previous 7 Days";
-  if (date >= monthStart) return "This Month";
+  if (date >= today) {return "Today";}
+  if (date >= yesterday) {return "Yesterday";}
+  if (date >= weekAgo) {return "Previous 7 Days";}
+  if (date >= monthStart) {return "This Month";}
   return "Older";
 }
 
@@ -191,10 +191,10 @@ function formatTimestamp(dateString: string): string {
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(hours / 24);
 
-  if (hours < 1) return "Just now";
-  if (hours < 24) return `${hours}h ago`;
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days}d ago`;
+  if (hours < 1) {return "Just now";}
+  if (hours < 24) {return `${hours}h ago`;}
+  if (days === 1) {return "Yesterday";}
+  if (days < 7) {return `${days}d ago`;}
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -228,22 +228,22 @@ export function ChatSidebarProvider({
 
   // Persist to localStorage when state changes
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!isHydrated) {return;}
     saveToStorage(STORAGE_KEYS.CHATS, chats);
   }, [chats, isHydrated]);
 
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!isHydrated) {return;}
     saveToStorage(STORAGE_KEYS.FOLDERS, folders);
   }, [folders, isHydrated]);
 
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!isHydrated) {return;}
     saveToStorage(STORAGE_KEYS.ACTIVE_CHAT, activeChatId);
   }, [activeChatId, isHydrated]);
 
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!isHydrated) {return;}
     saveToStorage(STORAGE_KEYS.SIDEBAR_COLLAPSED, isCollapsed);
   }, [isCollapsed, isHydrated]);
 
@@ -412,7 +412,7 @@ function ContextMenu({ state, onClose }: ContextMenuProps) {
     }
 
     function handleEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {onClose();}
     }
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -423,7 +423,7 @@ function ContextMenu({ state, onClose }: ContextMenuProps) {
     };
   }, [onClose]);
 
-  if (!state.isOpen) return null;
+  if (!state.isOpen) {return null;}
 
   const chat = state.chatId
     ? chats.find((c) => c.id === state.chatId)
@@ -497,8 +497,8 @@ function ContextMenu({ state, onClose }: ContextMenuProps) {
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") submitRename();
-              if (e.key === "Escape") onClose();
+              if (e.key === "Enter") {submitRename();}
+              if (e.key === "Escape") {onClose();}
             }}
             autoFocus
             maxLength={200}
@@ -700,7 +700,7 @@ function ChatItem({ chat, onContextMenu, onDragStart }: ChatItemProps) {
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={handleSaveEdit}
             onKeyDown={(e) => {
-              if (e.key === "Enter") handleSaveEdit();
+              if (e.key === "Enter") {handleSaveEdit();}
               if (e.key === "Escape") {
                 setEditValue(chat.title);
                 setIsEditing(false);
@@ -865,7 +865,7 @@ function FolderItem({
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={handleSaveEdit}
             onKeyDown={(e) => {
-              if (e.key === "Enter") handleSaveEdit();
+              if (e.key === "Enter") {handleSaveEdit();}
               if (e.key === "Escape") {
                 setEditValue(folder.name);
                 setIsEditing(false);
@@ -928,7 +928,7 @@ function DateGroupSection({
   onContextMenu,
   onDragStart,
 }: DateGroupProps) {
-  if (chats.length === 0) return null;
+  if (chats.length === 0) {return null;}
 
   return (
     <div className="space-y-1">
@@ -988,7 +988,7 @@ export function ChatSidebar({ className }: ChatSidebarProps) {
 
   // Filter chats based on search query
   const filteredChats = useMemo(() => {
-    if (!searchQuery.trim()) return chats;
+    if (!searchQuery.trim()) {return chats;}
     const q = searchQuery.toLowerCase();
     return chats.filter(
       (chat) =>
@@ -1156,7 +1156,7 @@ export function ChatSidebar({ className }: ChatSidebarProps) {
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleCreateFolder();
+                      if (e.key === "Enter") {handleCreateFolder();}
                       if (e.key === "Escape") {
                         setNewFolderName("");
                         setIsCreatingFolder(false);

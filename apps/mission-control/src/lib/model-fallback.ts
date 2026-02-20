@@ -17,7 +17,7 @@ const PREFERRED_PROVIDERS = [
 ];
 
 function errorText(error: unknown): string {
-  if (error instanceof Error) return error.message.toLowerCase();
+  if (error instanceof Error) {return error.message.toLowerCase();}
   return String(error ?? "").toLowerCase();
 }
 
@@ -46,34 +46,34 @@ export function isRecoverableModelError(error: unknown): boolean {
 
 function detectLikelyProvider(error: unknown): string | null {
   const text = errorText(error);
-  if (text.includes("anthropic") || text.includes("claude")) return "anthropic";
-  if (text.includes("openai")) return "openai";
-  if (text.includes("google") || text.includes("gemini")) return "google";
+  if (text.includes("anthropic") || text.includes("claude")) {return "anthropic";}
+  if (text.includes("openai")) {return "openai";}
+  if (text.includes("google") || text.includes("gemini")) {return "google";}
   return null;
 }
 
 function toModelRef(model: GatewayModel): string | null {
   const modelId = model.id?.trim();
-  if (!modelId) return null;
-  if (modelId.includes("/")) return modelId;
+  if (!modelId) {return null;}
+  if (modelId.includes("/")) {return modelId;}
   const provider = model.provider?.trim();
   return provider ? `${provider}/${modelId}` : modelId;
 }
 
 function providerRank(provider: string | undefined): number {
-  if (!provider) return PREFERRED_PROVIDERS.length + 1;
+  if (!provider) {return PREFERRED_PROVIDERS.length + 1;}
   const idx = PREFERRED_PROVIDERS.indexOf(provider);
   return idx === -1 ? PREFERRED_PROVIDERS.length : idx;
 }
 
 function extractUsageProviders(usagePayload: unknown): Set<string> {
   const active = new Set<string>();
-  if (!usagePayload || typeof usagePayload !== "object") return active;
+  if (!usagePayload || typeof usagePayload !== "object") {return active;}
   const providers = (usagePayload as { providers?: unknown[] }).providers;
-  if (!Array.isArray(providers)) return active;
+  if (!Array.isArray(providers)) {return active;}
 
   for (const providerEntry of providers) {
-    if (!providerEntry || typeof providerEntry !== "object") continue;
+    if (!providerEntry || typeof providerEntry !== "object") {continue;}
     const provider = (providerEntry as { provider?: unknown }).provider;
     if (typeof provider === "string" && provider.trim()) {
       active.add(provider.trim());
@@ -91,14 +91,14 @@ export async function retrySendMessageWithFallback(params: {
 }): Promise<{ modelRef: string } | null> {
   const { client, sessionKey, message, originalError, avoidProvider } = params;
 
-  if (!isRecoverableModelError(originalError)) return null;
+  if (!isRecoverableModelError(originalError)) {return null;}
 
   const blockedProviders = new Set<string>();
-  if (avoidProvider) blockedProviders.add(avoidProvider);
+  if (avoidProvider) {blockedProviders.add(avoidProvider);}
   const detected = detectLikelyProvider(originalError);
-  if (detected) blockedProviders.add(detected);
+  if (detected) {blockedProviders.add(detected);}
   // Block the failing provider's family to avoid retrying the same auth issue.
-  if (detected === "anthropic") blockedProviders.add("anthropic");
+  if (detected === "anthropic") {blockedProviders.add("anthropic");}
 
   const usagePayload = await client
     .getUsage()
@@ -110,22 +110,22 @@ export async function retrySendMessageWithFallback(params: {
   };
   const allModels = (modelResponse.models || [])
     .filter((model) => !!model.id)
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       const aProvider = a.provider || "";
       const bProvider = b.provider || "";
       const aActive = usageProviders.size === 0 || usageProviders.has(aProvider);
       const bActive = usageProviders.size === 0 || usageProviders.has(bProvider);
-      if (aActive !== bActive) return aActive ? -1 : 1;
+      if (aActive !== bActive) {return aActive ? -1 : 1;}
       return providerRank(a.provider) - providerRank(b.provider);
     });
 
   const candidateRefs: string[] = [];
   for (const model of allModels) {
     const provider = model.provider || "";
-    if (blockedProviders.has(provider)) continue;
-    if (usageProviders.size > 0 && provider && !usageProviders.has(provider)) continue;
+    if (blockedProviders.has(provider)) {continue;}
+    if (usageProviders.size > 0 && provider && !usageProviders.has(provider)) {continue;}
     const modelRef = toModelRef(model);
-    if (!modelRef || candidateRefs.includes(modelRef)) continue;
+    if (!modelRef || candidateRefs.includes(modelRef)) {continue;}
     candidateRefs.push(modelRef);
   }
 

@@ -34,12 +34,12 @@ const LEVEL_STYLES: Record<string, { color: string; bg: string }> = {
 };
 
 function parseLogLines(raw: unknown): LogLine[] {
-  if (!raw) return [];
+  if (!raw) {return [];}
 
   // If it's already an array of objects
   if (Array.isArray(raw)) {
     return raw.map((item, i) => {
-      if (typeof item === "string") return parseStringLine(item, i);
+      if (typeof item === "string") {return parseStringLine(item, i);}
       const objectItem = item as Record<string, unknown>;
       const timestamp =
         typeof objectItem.timestamp === "string"
@@ -77,9 +77,9 @@ function parseLogLines(raw: unknown): LogLine[] {
   // If it's an object with a lines/entries key
   if (typeof raw === "object" && raw !== null) {
     const obj = raw as Record<string, unknown>;
-    if (obj.lines) return parseLogLines(obj.lines);
-    if (obj.entries) return parseLogLines(obj.entries);
-    if (obj.logs) return parseLogLines(obj.logs);
+    if (obj.lines) {return parseLogLines(obj.lines);}
+    if (obj.entries) {return parseLogLines(obj.entries);}
+    if (obj.logs) {return parseLogLines(obj.logs);}
     // Single log object
     return [
       {
@@ -109,9 +109,9 @@ function parseStringLine(line: string, id: number): LogLine {
   }
   // Fallback: detect level from content
   let level: LogLine["level"] = "INFO";
-  if (/\b(error|err|fatal|panic)\b/i.test(line)) level = "ERROR";
-  else if (/\b(warn|warning)\b/i.test(line)) level = "WARN";
-  else if (/\b(debug|trace)\b/i.test(line)) level = "DEBUG";
+  if (/\b(error|err|fatal|panic)\b/i.test(line)) {level = "ERROR";}
+  else if (/\b(warn|warning)\b/i.test(line)) {level = "WARN";}
+  else if (/\b(debug|trace)\b/i.test(line)) {level = "DEBUG";}
 
   return {
     id,
@@ -142,7 +142,7 @@ export function LogsViewer() {
     `${log.timestamp || "no-ts"}|${log.level}|${log.message.trim()}`;
 
   const fetchLogs = useCallback(async () => {
-    if (paused) return;
+    if (paused) {return;}
     try {
       const res = await fetch("/api/openclaw/logs");
       const data = await res.json();
@@ -152,7 +152,7 @@ export function LogsViewer() {
       const newLines = parsed
         .filter((l) => {
           const hash = hashLog(l);
-          if (seenHashes.current.has(hash)) return false;
+          if (seenHashes.current.has(hash)) {return false;}
           seenHashes.current.add(hash);
           return true;
         })
@@ -182,7 +182,7 @@ export function LogsViewer() {
   }, [paused]);
 
   const scheduleRefresh = useCallback(() => {
-    if (refreshTimerRef.current) return;
+    if (refreshTimerRef.current) {return;}
     refreshTimerRef.current = setTimeout(() => {
       refreshTimerRef.current = null;
       fetchLogs().catch(() => {
@@ -197,7 +197,7 @@ export function LogsViewer() {
 
   const handleGatewayEvent = useCallback(
     (event: GatewayEvent) => {
-      if (event.type !== "gateway_event") return;
+      if (event.type !== "gateway_event") {return;}
       const eventName = (event.event || "").toLowerCase();
       if (
         eventName.includes("logs.") ||
@@ -251,20 +251,20 @@ export function LogsViewer() {
   const toggleFilter = (level: string) => {
     setFilters((prev) => {
       const next = new Set(prev);
-      if (next.has(level)) next.delete(level);
-      else next.add(level);
+      if (next.has(level)) {next.delete(level);}
+      else {next.add(level);}
       return next;
     });
   };
 
   const filteredLogs = logs.filter((log) => {
-    if (!filters.has(log.level)) return false;
-    if (search && !log.message.toLowerCase().includes(search.toLowerCase())) return false;
+    if (!filters.has(log.level)) {return false;}
+    if (search && !log.message.toLowerCase().includes(search.toLowerCase())) {return false;}
     return true;
   });
 
   const formatTime = (ts: string) => {
-    if (!ts) return "--:--:--";
+    if (!ts) {return "--:--:--";}
     try {
       const d = new Date(ts);
       return d.toLocaleTimeString("en-US", {

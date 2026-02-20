@@ -101,9 +101,9 @@ function buildWorkspaceMetrics(workspaceId?: string): WorkspaceMetrics {
     doneTasks: tasks.filter((task) => task.status === "done").length,
     unassignedTasks: tasks.filter((task) => !task.assigned_agent_id).length,
     staleTasks: tasks.filter((task) => {
-      if (task.status === "done") return false;
+      if (task.status === "done") {return false;}
       const updated = new Date(task.updated_at).getTime();
-      if (Number.isNaN(updated)) return false;
+      if (Number.isNaN(updated)) {return false;}
       return now - updated > staleMs;
     }).length,
     specialistTasks: tasks.filter((task) =>

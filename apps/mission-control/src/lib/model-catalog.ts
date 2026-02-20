@@ -281,7 +281,7 @@ export function catalogLookup(
 ): CatalogEntry | undefined {
   if (provider) {
     const key = `${provider}/${modelId}`;
-    if (_byProviderAndId.has(key)) return _byProviderAndId.get(key);
+    if (_byProviderAndId.has(key)) {return _byProviderAndId.get(key);}
   }
   return _byId.get(modelId) ?? _byProviderAndId.get(modelId);
 }

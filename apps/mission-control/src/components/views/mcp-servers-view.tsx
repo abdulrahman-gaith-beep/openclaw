@@ -83,7 +83,7 @@ export function MCPServersView() {
   }, [fetchCatalog]);
 
   const rows = useMemo<McpServerRow[]>(() => {
-    if (!catalog) return [];
+    if (!catalog) {return [];}
     const flattened: McpServerRow[] = [];
     for (const plugin of catalog.plugins) {
       for (const server of plugin.mcpServers || []) {
@@ -104,7 +104,7 @@ export function MCPServersView() {
 
   const filteredRows = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return rows;
+    if (!needle) {return rows;}
     return rows.filter((row) => {
       const haystack = [
         row.serverName,

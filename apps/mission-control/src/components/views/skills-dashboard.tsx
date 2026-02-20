@@ -77,8 +77,8 @@ type SourceFilter = "all" | "gateway" | "plugins" | "community";
 
 function parseGatewaySkills(data: SkillsResponse): Skill[] {
   const { skills } = data;
-  if (!skills) return [];
-  if (!Array.isArray(skills)) return [];
+  if (!skills) {return [];}
+  if (!Array.isArray(skills)) {return [];}
 
   return skills
     .filter((item): item is Record<string, unknown> =>
@@ -120,7 +120,7 @@ function parsePluginSkills(catalog: PluginCatalog): Skill[] {
 }
 
 function parseCommunitySkills(catalog: CommunitySkillsResponse | null): Skill[] {
-  if (!catalog || !Array.isArray(catalog.skills)) return [];
+  if (!catalog || !Array.isArray(catalog.skills)) {return [];}
   return catalog.skills
     .filter((skill) => skill && typeof skill === "object")
     .map((skill) => {
@@ -494,9 +494,9 @@ export function SkillsDashboard() {
   );
 
   const categorySkillPool = useMemo(() => {
-    if (sourceFilter === "plugins") return pluginSkills;
-    if (sourceFilter === "community") return communitySkills;
-    if (sourceFilter === "gateway") return [];
+    if (sourceFilter === "plugins") {return pluginSkills;}
+    if (sourceFilter === "community") {return communitySkills;}
+    if (sourceFilter === "gateway") {return [];}
     return [...pluginSkills, ...communitySkills];
   }, [sourceFilter, pluginSkills, communitySkills]);
 
@@ -668,7 +668,7 @@ export function SkillsDashboard() {
             key={key}
             onClick={() => {
               setSourceFilter(key);
-              if (key === "gateway") setCategoryFilter("all");
+              if (key === "gateway") {setCategoryFilter("all");}
             }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
               sourceFilter === key

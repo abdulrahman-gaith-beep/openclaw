@@ -62,13 +62,13 @@ export default function SettingsPanel() {
 
   // Apply theme on mount and theme change
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted) {return;}
     applyTheme(resolveTheme(settings.theme));
   }, [settings.theme, mounted]);
 
   // Watch for system theme changes
   useEffect(() => {
-    if (settings.theme !== "system") return;
+    if (settings.theme !== "system") {return;}
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => applyTheme(resolveTheme("system"));
     mq.addEventListener("change", handleChange);
@@ -106,7 +106,7 @@ export default function SettingsPanel() {
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {return;}
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
@@ -118,7 +118,7 @@ export default function SettingsPanel() {
       }
     };
     reader.readAsText(file);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (fileInputRef.current) {fileInputRef.current.value = "";}
   };
 
   const handleReset = () => {

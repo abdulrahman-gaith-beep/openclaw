@@ -8,7 +8,7 @@ export class TelegramMasterMonitor {
     private offset = 0;
 
     start() {
-        if (this.running) return;
+        if (this.running) {return;}
         this.running = true;
         this.poll();
         console.log("[TelegramMaster] Started long-polling");
@@ -16,7 +16,7 @@ export class TelegramMasterMonitor {
 
     stop() {
         this.running = false;
-        if (this.timer) clearTimeout(this.timer);
+        if (this.timer) {clearTimeout(this.timer);}
     }
 
     private async getToken() {
@@ -25,7 +25,7 @@ export class TelegramMasterMonitor {
     }
 
     private async poll() {
-        if (!this.running) return;
+        if (!this.running) {return;}
 
         const token = await this.getToken();
         if (!token) {
@@ -119,7 +119,7 @@ export class TelegramMasterMonitor {
      */
     public async broadcastAlert(message: string) {
         const token = await this.getToken();
-        if (!token) return;
+        if (!token) {return;}
         // Note: To broadcast, we need a saved chat_id. For v1, we can require the user to send `/start` first 
         // and we save it, OR we simply rely on reply to messages.
         // Let's print to console for now if broadcast is requested.
@@ -129,6 +129,6 @@ export class TelegramMasterMonitor {
 
 let monitor: TelegramMasterMonitor | null = null;
 export function getTelegramMasterMonitor() {
-    if (!monitor) monitor = new TelegramMasterMonitor();
+    if (!monitor) {monitor = new TelegramMasterMonitor();}
     return monitor;
 }

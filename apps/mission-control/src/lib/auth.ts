@@ -28,16 +28,16 @@ if (!AUTH_ENABLED) {
 }
 
 function extractBearerToken(authHeader: string | null): string | null {
-  if (!authHeader) return null;
+  if (!authHeader) {return null;}
   const value = authHeader.trim();
-  if (!value.toLowerCase().startsWith("bearer ")) return null;
+  if (!value.toLowerCase().startsWith("bearer ")) {return null;}
   return value.slice(7).trim();
 }
 
 function extractQueryToken(request: NextRequest): string | null {
   const pathname = request.nextUrl.pathname;
-  if (request.method.toUpperCase() !== "GET") return null;
-  if (pathname !== "/api/openclaw/events") return null;
+  if (request.method.toUpperCase() !== "GET") {return null;}
+  if (pathname !== "/api/openclaw/events") {return null;}
   const token = request.nextUrl.searchParams.get("token");
   return token?.trim() || null;
 }
@@ -91,7 +91,7 @@ export function withAuth(
   return async (request: NextRequest) => {
     const requestId = request.headers.get("x-request-id") ?? undefined;
     const authError = requireAuth(request, requestId);
-    if (authError) return authError;
+    if (authError) {return authError;}
     const response = await handler(request);
     return attachRequestIdHeader(response, requestId);
   };

@@ -6,12 +6,12 @@ function isBrowser(): boolean {
 }
 
 export function loadCommunityUsecaseFavorites(): string[] {
-  if (!isBrowser()) return [];
+  if (!isBrowser()) {return [];}
   try {
     const raw = window.localStorage.getItem(COMMUNITY_USECASE_FAVORITES_KEY);
-    if (!raw) return [];
+    if (!raw) {return [];}
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed)) {return [];}
     return parsed
       .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
       .slice(0, MAX_FAVORITES);
@@ -21,7 +21,7 @@ export function loadCommunityUsecaseFavorites(): string[] {
 }
 
 export function saveCommunityUsecaseFavorites(ids: string[]): void {
-  if (!isBrowser()) return;
+  if (!isBrowser()) {return;}
   try {
     const normalized = Array.from(
       new Set(ids.filter((id) => typeof id === "string" && id.trim().length > 0))

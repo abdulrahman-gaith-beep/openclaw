@@ -15,8 +15,8 @@ function walkDir(dir) {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     const stat = statSync(full);
-    if (stat.isDirectory()) files.push(...walkDir(full));
-    else if (full.endsWith(".js") && !full.endsWith(".map")) files.push(full);
+    if (stat.isDirectory()) {files.push(...walkDir(full));}
+    else if (full.endsWith(".js") && !full.endsWith(".map")) {files.push(full);}
   }
   return files;
 }
@@ -39,13 +39,13 @@ for (const distFile of walkDir(distDir)) {
   for (const m of srcContent.matchAll(/export\s*\{([^}]+)\}/g)) {
     for (const part of m[1].split(",")) {
       const name = part.trim().split(/\s+as\s+/).pop().trim();
-      if (name) srcExports.add(name);
+      if (name) {srcExports.add(name);}
     }
   }
 
   // Find current dist export statement
   const exportMatch = distContent.match(/^export \{ (.+) \};$/m);
-  if (!exportMatch) continue;
+  if (!exportMatch) {continue;}
 
   const distExportEntries = exportMatch[1].split(",").map(s => s.trim());
   const distExports = new Set(distExportEntries.map(s => {

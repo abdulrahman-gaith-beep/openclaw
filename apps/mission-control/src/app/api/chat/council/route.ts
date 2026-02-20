@@ -11,7 +11,7 @@ const POLL_INTERVAL_MS = 1_200;
 const POLL_TIMEOUT_MS = 45_000;
 
 function resolveSessionKey(raw?: string | null): string {
-  if (raw && raw.startsWith("agent:")) return raw;
+  if (raw && raw.startsWith("agent:")) {return raw;}
   const suffix = raw || "mission-control:chat";
   return `agent:${DEFAULT_AGENT}:${suffix}`;
 }
@@ -23,11 +23,11 @@ function buildCouncilSessionKey(baseSessionKey: string, model: string, index: nu
 }
 
 function extractText(content: unknown): string {
-  if (typeof content === "string") return content.trim();
+  if (typeof content === "string") {return content.trim();}
   if (Array.isArray(content)) {
     return content
       .map((entry) => {
-        if (typeof entry === "string") return entry;
+        if (typeof entry === "string") {return entry;}
         if (entry && typeof entry === "object" && typeof (entry as Record<string, unknown>).text === "string") {
           return (entry as Record<string, unknown>).text as string;
         }

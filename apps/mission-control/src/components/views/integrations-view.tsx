@@ -99,7 +99,7 @@ export function IntegrationsView() {
     setLoading(true);
     try {
       const res = await fetch("/api/integrations");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
       const data = (await res.json()) as IntegrationsResponse;
       setIntegrations(data.integrations || emptyIntegrationSummary());
     } catch (error) {

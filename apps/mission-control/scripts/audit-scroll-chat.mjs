@@ -133,7 +133,7 @@ const page = await browser.newPage();
 const consoleErrorsByScenario = new Map();
 let activeScenarioId = "";
 page.on("console", (message) => {
-  if (message.type() !== "error") return;
+  if (message.type() !== "error") {return;}
   const errors = consoleErrorsByScenario.get(activeScenarioId) || [];
   errors.push(message.text());
   consoleErrorsByScenario.set(activeScenarioId, errors);

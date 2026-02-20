@@ -148,18 +148,18 @@ function escapeHtml(value: string): string {
 
 function normalizeSummary(input: string): string {
   const plain = stripHtml(input);
-  if (!plain) return "No summary available.";
+  if (!plain) {return "No summary available.";}
   return plain.length > 320 ? `${plain.slice(0, 320).trim()}...` : plain;
 }
 
 function normalizeContent(input: string, title: string, link: string): string {
   const sourceContent = decodeEntities(input).trim();
-  if (sourceContent) return sourceContent;
+  if (sourceContent) {return sourceContent;}
   return `<p>${escapeHtml(title)}</p><p><a href="${escapeHtml(link)}">Open source</a></p>`;
 }
 
 function safeDate(input: string | null): number {
-  if (!input) return Date.now();
+  if (!input) {return Date.now();}
   const ts = Date.parse(input);
   return Number.isNaN(ts) ? Date.now() : ts;
 }
@@ -311,18 +311,18 @@ function scoreLesson({
   const text = `${title} ${summary}`.toLowerCase();
   const ageHours = Math.max(0, (Date.now() - publishedAt) / (1000 * 60 * 60));
 
-  if (source === "reddit") score += 7;
-  if (source === "github") score += 6;
-  if (source === "twitter") score += 5;
+  if (source === "reddit") {score += 7;}
+  if (source === "github") {score += 6;}
+  if (source === "twitter") {score += 5;}
 
-  if (ageHours <= 24) score += 8;
-  else if (ageHours <= 24 * 3) score += 5;
-  else if (ageHours <= 24 * 7) score += 3;
+  if (ageHours <= 24) {score += 8;}
+  else if (ageHours <= 24 * 3) {score += 5;}
+  else if (ageHours <= 24 * 7) {score += 3;}
 
-  if (/best practice|playbook|guide|checklist|workflow/.test(text)) score += 8;
-  if (/incident|postmortem|outage|failure/.test(text)) score += 5;
-  if (/release|changelog|new|launch|update/.test(text)) score += 4;
-  if (/security|vulnerability|exploit|threat/.test(text)) score += 5;
+  if (/best practice|playbook|guide|checklist|workflow/.test(text)) {score += 8;}
+  if (/incident|postmortem|outage|failure/.test(text)) {score += 5;}
+  if (/release|changelog|new|launch|update/.test(text)) {score += 4;}
+  if (/security|vulnerability|exploit|threat/.test(text)) {score += 5;}
 
   return Math.max(55, Math.min(98, Math.round(score)));
 }
@@ -350,12 +350,12 @@ async function fetchFeedXml(url: string): Promise<string> {
 
 function getXFeedsFromEnv(): FeedSpec[] {
   const configured = process.env.LEARNING_HUB_X_RSS_URLS;
-  if (!configured) return DEFAULT_X_FEEDS;
+  if (!configured) {return DEFAULT_X_FEEDS;}
   const urls = configured
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
-  if (urls.length === 0) return DEFAULT_X_FEEDS;
+  if (urls.length === 0) {return DEFAULT_X_FEEDS;}
   return urls.map((url) => ({
     url,
     source: "twitter",
@@ -489,7 +489,7 @@ function dedupeLessons(lessons: LearningLesson[]): LearningLesson[] {
     }
   }
   return Array.from(byKey.values())
-    .sort((a, b) => b.rating - a.rating)
+    .toSorted((a, b) => b.rating - a.rating)
     .slice(0, MAX_LESSONS);
 }
 

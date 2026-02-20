@@ -99,9 +99,9 @@ const SCHEDULE_PRESETS = [
 ];
 
 function formatMs(ms: number): string {
-  if (ms < 60_000) return `${Math.round(ms / 1000)} seconds`;
-  if (ms < 3_600_000) return `${Math.round(ms / 60_000)} minutes`;
-  if (ms < 86_400_000) return `${Math.round(ms / 3_600_000)} hours`;
+  if (ms < 60_000) {return `${Math.round(ms / 1000)} seconds`;}
+  if (ms < 3_600_000) {return `${Math.round(ms / 60_000)} minutes`;}
+  if (ms < 86_400_000) {return `${Math.round(ms / 3_600_000)} hours`;}
   return `${Math.round(ms / 86_400_000)} days`;
 }
 
@@ -118,16 +118,16 @@ function scheduleToHuman(schedule: string | ScheduleObject): string {
     }
     return "Custom schedule";
   }
-  if (typeof schedule !== "string") return "Custom schedule";
+  if (typeof schedule !== "string") {return "Custom schedule";}
   return cronToHuman(schedule);
 }
 
 function cronToHuman(cron: string): string {
   const preset = SCHEDULE_PRESETS.find((p) => p.cron === cron);
-  if (preset) return preset.label;
+  if (preset) {return preset.label;}
 
   const parts = cron.split(" ");
-  if (parts.length !== 5) return cron;
+  if (parts.length !== 5) {return cron;}
 
   const [min, hour, dom, , dow] = parts;
 
@@ -137,25 +137,25 @@ function cronToHuman(cron: string): string {
     const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
     return `Every day at ${h12}:00 ${ampm}`;
   }
-  if (min.startsWith("*/")) return `Every ${min.slice(2)} minutes`;
-  if (hour.startsWith("*/")) return `Every ${hour.slice(2)} hours`;
+  if (min.startsWith("*/")) {return `Every ${min.slice(2)} minutes`;}
+  if (hour.startsWith("*/")) {return `Every ${hour.slice(2)} hours`;}
   return cron;
 }
 
 function timeAgo(dateStr: string | undefined): string {
-  if (!dateStr) return "Never";
+  if (!dateStr) {return "Never";}
   const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return dateStr;
+  if (isNaN(date.getTime())) {return dateStr;}
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
   if (seconds < 0) {
     const future = Math.abs(seconds);
-    if (future < 3600) return `in ${Math.floor(future / 60)}m`;
-    if (future < 86400) return `in ${Math.floor(future / 3600)}h`;
+    if (future < 3600) {return `in ${Math.floor(future / 60)}m`;}
+    if (future < 86400) {return `in ${Math.floor(future / 3600)}h`;}
     return `in ${Math.floor(future / 86400)}d`;
   }
-  if (seconds < 60) return "just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 60) {return "just now";}
+  if (seconds < 3600) {return `${Math.floor(seconds / 60)}m ago`;}
+  if (seconds < 86400) {return `${Math.floor(seconds / 3600)}h ago`;}
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
@@ -205,7 +205,7 @@ export function CronScheduler() {
   }, []);
 
   const scheduleRefresh = useCallback(() => {
-    if (refreshTimerRef.current) return;
+    if (refreshTimerRef.current) {return;}
     refreshTimerRef.current = setTimeout(() => {
       refreshTimerRef.current = null;
       fetchJobs().catch(() => {
@@ -220,7 +220,7 @@ export function CronScheduler() {
 
   const handleGatewayEvent = useCallback(
     (event: GatewayEvent) => {
-      if (event.type !== "gateway_event") return;
+      if (event.type !== "gateway_event") {return;}
       const eventName = (event.event || "").toLowerCase();
       if (eventName.includes("cron.") || eventName.includes("status")) {
         scheduleRefresh();
@@ -258,7 +258,7 @@ export function CronScheduler() {
   }, []);
 
   const createJob = async () => {
-    if (!newPrompt.trim()) return;
+    if (!newPrompt.trim()) {return;}
     setCreating(true);
     try {
       await fetch("/api/openclaw/cron", {

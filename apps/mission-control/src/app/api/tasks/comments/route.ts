@@ -22,7 +22,7 @@ export const GET = withApiGuard(async (request: NextRequest) => {
 
     // Verify the parent task belongs to the given workspace
     const task = getTaskWithWorkspace(taskId, workspace_id);
-    if (!task) throw new UserError("Task not found", 404);
+    if (!task) {throw new UserError("Task not found", 404);}
 
     const comments = listComments(taskId);
     return NextResponse.json({ comments });
@@ -42,7 +42,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
 
     // Verify the parent task belongs to the given workspace
     const task = getTaskWithWorkspace(payload.taskId, payload.workspace_id);
-    if (!task) throw new UserError("Task not found", 404);
+    if (!task) {throw new UserError("Task not found", 404);}
 
     const comment = addComment({
       id: uuidv4(),

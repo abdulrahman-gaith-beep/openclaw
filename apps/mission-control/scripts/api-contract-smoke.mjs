@@ -13,7 +13,7 @@ let csrfToken = "";
 let csrfCookie = "";
 
 async function ensureCsrf() {
-  if (csrfToken && csrfCookie) return;
+  if (csrfToken && csrfCookie) {return;}
   const headers = new Headers();
   if (apiKey) {
     headers.set("Authorization", `Bearer ${apiKey}`);
@@ -94,7 +94,7 @@ if (apiKey) {
       elapsedMs: unauth.elapsedMs,
     })
   );
-  if (!pass) failed = true;
+  if (!pass) {failed = true;}
 } else {
   results.push(
     result("unauthorized_access_rejected", true, {
@@ -120,7 +120,7 @@ results.push(
     body: invalidPayload.data,
   })
 );
-if (!invalidPayloadPass) failed = true;
+if (!invalidPayloadPass) {failed = true;}
 
 // 3) Tools endpoint blocks non-allowlisted methods.
 const blockedMethod = await request("/api/openclaw/tools", {
@@ -139,7 +139,7 @@ results.push(
     body: blockedMethod.data,
   })
 );
-if (!blockedMethodPass) failed = true;
+if (!blockedMethodPass) {failed = true;}
 
 // 4) Provider fallback/degraded behavior should be controlled (never crash route).
 const gatewayStatus = await request("/api/openclaw/status", { auth: true });
@@ -163,7 +163,7 @@ if (connected) {
       body: chatAttempt.data,
     })
   );
-  if (!chatPass) failed = true;
+  if (!chatPass) {failed = true;}
 } else {
   results.push(
     result("provider_degraded_path_no_500", true, {

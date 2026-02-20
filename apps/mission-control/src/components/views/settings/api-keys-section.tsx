@@ -40,7 +40,7 @@ export function ApiKeysSection({ defaultProvider, onProviderHandled }: ApiKeysSe
         setError(null);
         try {
             const res = await fetch("/api/settings/api-keys");
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             const json = await res.json();
             setApiKeys(Array.isArray(json.keys) ? json.keys : []);
         } catch (err) {
@@ -66,7 +66,7 @@ export function ApiKeysSection({ defaultProvider, onProviderHandled }: ApiKeysSe
     }, [defaultProvider, onProviderHandled]);
 
     const handleAdd = async () => {
-        if (!newValue.trim()) return;
+        if (!newValue.trim()) {return;}
         setSaving(true);
         try {
             // 1. Save the key
@@ -80,7 +80,7 @@ export function ApiKeysSection({ defaultProvider, onProviderHandled }: ApiKeysSe
                     base_url: newBaseUrl || null,
                 }),
             });
-            if (!saveRes.ok) throw new Error(`Save failed: HTTP ${saveRes.status}`);
+            if (!saveRes.ok) {throw new Error(`Save failed: HTTP ${saveRes.status}`);}
             const saved = await saveRes.json();
             const savedId = saved.key?.id || saved.id;
 
@@ -133,7 +133,7 @@ export function ApiKeysSection({ defaultProvider, onProviderHandled }: ApiKeysSe
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id, is_active: isActive }),
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             addToast("success", `API key ${isActive ? "enabled" : "disabled"}`);
         } catch {
             setApiKeys((prev) => prev.map((k) => (k.id === id ? { ...k, is_active: !isActive } : k)));
@@ -149,7 +149,7 @@ export function ApiKeysSection({ defaultProvider, onProviderHandled }: ApiKeysSe
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id, test: true }),
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             const result = await res.json();
             setApiKeys((prev) =>
                 prev.map((k) =>
@@ -176,7 +176,7 @@ export function ApiKeysSection({ defaultProvider, onProviderHandled }: ApiKeysSe
         setDeletingId(id);
         try {
             const res = await fetch(`/api/settings/api-keys?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             setApiKeys((prev) => prev.filter((k) => k.id !== id));
             addToast("success", "API key deleted");
         } catch (err) {
@@ -238,7 +238,7 @@ export function ApiKeysSection({ defaultProvider, onProviderHandled }: ApiKeysSe
                                 onChange={(e) => {
                                     const provider = API_KEY_PROVIDERS.find((p) => p.id === e.target.value);
                                     setNewProvider(e.target.value);
-                                    if (provider) setNewLabel(provider.name);
+                                    if (provider) {setNewLabel(provider.name);}
                                 }}
                                 className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all text-sm"
                             >

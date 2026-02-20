@@ -30,7 +30,7 @@ export function AiModelSection() {
         setError(null);
         try {
             const res = await fetch("/api/models");
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             const data: ModelsResponse & { degraded?: boolean } = await res.json();
             setModelsData(data);
             setDegraded(!!data.degraded);

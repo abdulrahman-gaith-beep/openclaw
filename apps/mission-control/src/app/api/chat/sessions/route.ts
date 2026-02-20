@@ -17,7 +17,7 @@ const DEFAULT_AGENT = "main";
 const SESSION_PREFIX = `agent:${DEFAULT_AGENT}:`;
 
 function normalizeSessionKey(raw: string): string {
-  if (raw.startsWith("agent:")) return raw;
+  if (raw.startsWith("agent:")) {return raw;}
   return `${SESSION_PREFIX}${raw}`;
 }
 
@@ -25,19 +25,19 @@ function toSessionLabel(key: string): string {
   const trimmed = key.startsWith(SESSION_PREFIX)
     ? key.slice(SESSION_PREFIX.length)
     : key;
-  if (!trimmed) return "Untitled Session";
-  if (trimmed.length <= 42) return trimmed;
+  if (!trimmed) {return "Untitled Session";}
+  if (trimmed.length <= 42) {return trimmed;}
   return `${trimmed.slice(0, 39)}...`;
 }
 
 function toTimestamp(value: string | undefined): number {
-  if (!value) return 0;
+  if (!value) {return 0;}
   const parsed = Date.parse(value);
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 function isMissionControlChatSession(key: string): boolean {
-  if (!key.startsWith(SESSION_PREFIX)) return false;
+  if (!key.startsWith(SESSION_PREFIX)) {return false;}
   const suffix = key.slice(SESSION_PREFIX.length);
   return suffix === "mission-control:chat" || suffix.startsWith("mission-control:chat-");
 }
@@ -73,7 +73,7 @@ export const GET = withApiGuard(async (req: NextRequest) => {
     const sessions = await client.listSessions({ agentId: DEFAULT_AGENT });
     const deduped = new Map<string, OpenClawSession>();
     for (const session of sessions) {
-      if (!session.key || !isMissionControlChatSession(session.key)) continue;
+      if (!session.key || !isMissionControlChatSession(session.key)) {continue;}
       const existing = deduped.get(session.key);
       if (!existing) {
         deduped.set(session.key, session);
@@ -85,7 +85,7 @@ export const GET = withApiGuard(async (req: NextRequest) => {
     }
 
     const filtered = Array.from(deduped.values())
-      .sort(
+      .toSorted(
         (a, b) => toTimestamp(b.lastActivity) - toTimestamp(a.lastActivity)
       )
       .slice(0, limit)

@@ -22,8 +22,8 @@ const SENSITIVE_KEY_PATTERN =
   /(token|secret|password|apikey|api_key|authorization|auth|signature|private|sessionfile|workspace|path|prompt)/i;
 
 function sanitizeEventPayload(value: unknown, depth = 0): unknown {
-  if (value == null) return value;
-  if (depth >= MAX_EVENT_DEPTH) return TRUNCATED_VALUE;
+  if (value == null) {return value;}
+  if (depth >= MAX_EVENT_DEPTH) {return TRUNCATED_VALUE;}
 
   if (
     typeof value === "string" ||
@@ -87,7 +87,7 @@ function summarizeHealthPayload(payload: unknown): Record<string, unknown> {
 
   const channels: Record<string, Record<string, boolean | undefined>> = {};
   for (const [name, raw] of Object.entries(channelsSource)) {
-    if (!raw || typeof raw !== "object") continue;
+    if (!raw || typeof raw !== "object") {continue;}
     const entry = raw as Record<string, unknown>;
     channels[name] = {
       configured: toBool(entry.configured),
@@ -139,7 +139,7 @@ export const GET = withApiGuard(async (request: NextRequest) => {
       let closed = false;
 
       const safeEnqueue = (payload: GatewayStreamPayload) => {
-        if (closed) return;
+        if (closed) {return;}
         try {
           controller.enqueue(encodeSse(payload));
         } catch {
@@ -201,7 +201,7 @@ export const GET = withApiGuard(async (request: NextRequest) => {
       }, 15_000);
 
       cleanup = () => {
-        if (closed) return;
+        if (closed) {return;}
         closed = true;
         clearInterval(heartbeat);
         unsubscribe();

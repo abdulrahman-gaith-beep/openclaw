@@ -59,9 +59,9 @@ interface ChannelsApiResponse {
 }
 
 function deriveStatus(ch: ChannelStatus): "connected" | "disconnected" | "not_configured" | "error" {
-  if (!ch.configured && !ch.linked) return "not_configured";
-  if (ch.running && (ch.connected !== false)) return "connected";
-  if (ch.lastError && ch.lastError !== "not configured" && ch.lastError !== "not linked") return "error";
+  if (!ch.configured && !ch.linked) {return "not_configured";}
+  if (ch.running && (ch.connected !== false)) {return "connected";}
+  if (ch.lastError && ch.lastError !== "not configured" && ch.lastError !== "not linked") {return "error";}
   return "disconnected";
 }
 
@@ -109,7 +109,7 @@ export function ChannelsView() {
     try {
       setError(null);
       const response = await fetch("/api/openclaw/channels");
-      if (!response.ok) throw new Error(`Failed to fetch channels: ${response.statusText}`);
+      if (!response.ok) {throw new Error(`Failed to fetch channels: ${response.statusText}`);}
       const json: ChannelsApiResponse = await response.json();
       setData(json);
     } catch (err) {

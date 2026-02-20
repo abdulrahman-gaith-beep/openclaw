@@ -45,7 +45,7 @@ type GuardedHandler = (request: NextRequest) => Promise<Response>;
 function extractWorkspaceId(request: NextRequest): string | null {
   // Try query params first (works for GET / DELETE)
   const fromQuery = request.nextUrl.searchParams.get("workspace_id");
-  if (fromQuery) return fromQuery;
+  if (fromQuery) {return fromQuery;}
 
   return null;
 }
@@ -66,7 +66,7 @@ export function withApiGuard(
     // Auth — skip when risk level says auth is not required
     if (riskConfig.authRequired) {
       const authError = requireAuth(request, requestId);
-      if (authError) return authError;
+      if (authError) {return authError;}
     }
 
     // Rate limit — apply multiplier from risk config
@@ -81,13 +81,13 @@ export function withApiGuard(
         );
       }
       const rateLimitError = checkRateLimit(request, adjustedConfig, requestId);
-      if (rateLimitError) return rateLimitError;
+      if (rateLimitError) {return rateLimitError;}
     }
 
     // CSRF — skip when risk level disables it
     if (options.requireCsrf && CSRF_ENV_FLAG && riskConfig.csrfEnabled) {
       const csrfError = checkCsrf(request, requestId);
-      if (csrfError) return csrfError;
+      if (csrfError) {return csrfError;}
     }
 
     // Profile-workspace authorization
@@ -98,7 +98,7 @@ export function withApiGuard(
         workspaceId,
         requestId
       );
-      if (profileError) return profileError;
+      if (profileError) {return profileError;}
     }
 
     const response = await handler(request);

@@ -76,7 +76,7 @@ async function isPortOpen(host: string, port: number, timeoutMs = 1200): Promise
         const socket = net.createConnection({ host, port });
         let settled = false;
         const done = (ok: boolean) => {
-            if (settled) return;
+            if (settled) {return;}
             settled = true;
             socket.destroy();
             resolve(ok);
@@ -91,7 +91,7 @@ async function isPortOpen(host: string, port: number, timeoutMs = 1200): Promise
 async function waitForGateway(host: string, port: number, timeoutMs = 15_000): Promise<boolean> {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
-        if (await isPortOpen(host, port)) return true;
+        if (await isPortOpen(host, port)) {return true;}
         await new Promise((r) => setTimeout(r, 500));
     }
     return false;

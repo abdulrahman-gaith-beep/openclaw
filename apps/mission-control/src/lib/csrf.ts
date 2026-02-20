@@ -28,29 +28,29 @@ export function generateCsrfToken(): string {
  * Validate a CSRF token.
  */
 export function validateCsrfToken(token: string): boolean {
-  if (!token) return false;
+  if (!token) {return false;}
   
   const parts = token.split(".");
-  if (parts.length !== 3) return false;
+  if (parts.length !== 3) {return false;}
   
   const [timestamp, random, providedHmac] = parts;
   const data = `${timestamp}.${random}`;
   const expectedHmac = createHmac("sha256", CSRF_SECRET).update(data).digest("hex").slice(0, 16);
   
   // Timing-safe comparison
-  if (providedHmac.length !== expectedHmac.length) return false;
+  if (providedHmac.length !== expectedHmac.length) {return false;}
   
   let result = 0;
   for (let i = 0; i < providedHmac.length; i++) {
     result |= providedHmac.charCodeAt(i) ^ expectedHmac.charCodeAt(i);
   }
   
-  if (result !== 0) return false;
+  if (result !== 0) {return false;}
   
   // Check token age (max 4 hours)
   const tokenTime = parseInt(timestamp, 36);
   const maxAge = 4 * 60 * 60 * 1000;
-  if (Date.now() - tokenTime > maxAge) return false;
+  if (Date.now() - tokenTime > maxAge) {return false;}
   
   return true;
 }

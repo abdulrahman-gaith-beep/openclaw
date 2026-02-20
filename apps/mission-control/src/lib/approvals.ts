@@ -50,28 +50,28 @@ function isRecord(value: unknown): value is UnknownRecord {
 
 function firstNonEmptyString(values: unknown[]): string | undefined {
   for (const value of values) {
-    if (typeof value !== "string") continue;
+    if (typeof value !== "string") {continue;}
     const trimmed = value.trim();
-    if (trimmed) return trimmed;
+    if (trimmed) {return trimmed;}
   }
   return undefined;
 }
 
 function parseDateMs(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-    if (value < 10_000_000_000) return Math.floor(value * 1000);
+    if (value < 10_000_000_000) {return Math.floor(value * 1000);}
     return Math.floor(value);
   }
   if (typeof value === "string") {
     const trimmed = value.trim();
-    if (!trimmed) return undefined;
+    if (!trimmed) {return undefined;}
     const numeric = Number(trimmed);
     if (Number.isFinite(numeric) && numeric > 0) {
-      if (numeric < 10_000_000_000) return Math.floor(numeric * 1000);
+      if (numeric < 10_000_000_000) {return Math.floor(numeric * 1000);}
       return Math.floor(numeric);
     }
     const parsed = Date.parse(trimmed);
-    if (Number.isFinite(parsed)) return parsed;
+    if (Number.isFinite(parsed)) {return parsed;}
   }
   return undefined;
 }
@@ -109,7 +109,7 @@ function mergeRecord(existing: ApprovalRecord, incoming: ApprovalRecord): Approv
 }
 
 function parseApprovalCandidate(candidate: unknown, index: number): ApprovalRecord | null {
-  if (!isRecord(candidate)) return null;
+  if (!isRecord(candidate)) {return null;}
 
   const request = isRecord(candidate.request) ? candidate.request : undefined;
   const command = firstNonEmptyString([
@@ -117,7 +117,7 @@ function parseApprovalCandidate(candidate: unknown, index: number): ApprovalReco
     candidate.cmd,
     request?.command,
   ]);
-  if (!command) return null;
+  if (!command) {return null;}
 
   const createdAtMs = parseDateMs(
     candidate.createdAtMs ??
@@ -176,17 +176,17 @@ function parseApprovalCandidate(candidate: unknown, index: number): ApprovalReco
 }
 
 function collectObjectValues(input: unknown): unknown[] {
-  if (!isRecord(input)) return [];
+  if (!isRecord(input)) {return [];}
   const values: unknown[] = [];
   for (const value of Object.values(input)) {
-    if (Array.isArray(value)) values.push(...value);
-    else if (isRecord(value)) values.push(value);
+    if (Array.isArray(value)) {values.push(...value);}
+    else if (isRecord(value)) {values.push(value);}
   }
   return values;
 }
 
 export function looksLikeApprovalsConfigSnapshot(input: unknown): boolean {
-  if (!isRecord(input)) return false;
+  if (!isRecord(input)) {return false;}
   return (
     ("file" in input && "hash" in input) ||
     ("exists" in input && "path" in input) ||
@@ -195,16 +195,16 @@ export function looksLikeApprovalsConfigSnapshot(input: unknown): boolean {
 }
 
 export function extractApprovalCandidates(input: unknown): unknown[] {
-  if (!input) return [];
-  if (Array.isArray(input)) return input;
-  if (!isRecord(input)) return [];
+  if (!input) {return [];}
+  if (Array.isArray(input)) {return input;}
+  if (!isRecord(input)) {return [];}
 
   const nestedKeys = ["approvals", "pending", "requests", "queue", "items", "entries"];
   for (const key of nestedKeys) {
-    if (!(key in input)) continue;
+    if (!(key in input)) {continue;}
     const nested = input[key];
     const extracted = extractApprovalCandidates(nested);
-    if (extracted.length > 0) return extracted;
+    if (extracted.length > 0) {return extracted;}
   }
 
   const directCommand = firstNonEmptyString([
@@ -212,19 +212,19 @@ export function extractApprovalCandidates(input: unknown): unknown[] {
     input.cmd,
     isRecord(input.request) ? input.request.command : undefined,
   ]);
-  if (directCommand) return [input];
+  if (directCommand) {return [input];}
 
   return collectObjectValues(input);
 }
 
 export function normalizeApprovalRecords(input: unknown): ApprovalRecord[] {
   const candidates = extractApprovalCandidates(input);
-  if (candidates.length === 0) return [];
+  if (candidates.length === 0) {return [];}
 
   const byId = new Map<string, ApprovalRecord>();
   for (let i = 0; i < candidates.length; i += 1) {
     const parsed = parseApprovalCandidate(candidates[i], i);
-    if (!parsed) continue;
+    if (!parsed) {continue;}
     const existing = byId.get(parsed.id);
     byId.set(parsed.id, existing ? mergeRecord(existing, parsed) : parsed);
   }
@@ -232,19 +232,19 @@ export function normalizeApprovalRecords(input: unknown): ApprovalRecord[] {
 }
 
 export function isApprovalApproved(value?: string | null): boolean {
-  if (!value) return false;
+  if (!value) {return false;}
   return APPROVED_DECISIONS.has(value.trim().toLowerCase());
 }
 
 export function isApprovalRejected(value?: string | null): boolean {
-  if (!value) return false;
+  if (!value) {return false;}
   return REJECTED_DECISIONS.has(value.trim().toLowerCase());
 }
 
 export function isApprovalResolved(approval: ApprovalRecord): boolean {
-  if (isApprovalApproved(approval.decision) || isApprovalRejected(approval.decision)) return true;
+  if (isApprovalApproved(approval.decision) || isApprovalRejected(approval.decision)) {return true;}
   const status = approval.status?.trim().toLowerCase();
-  if (!status) return false;
+  if (!status) {return false;}
   if (status.includes("pending") || status.includes("queued") || status.includes("waiting")) {
     return false;
   }
@@ -273,18 +273,18 @@ export function approvalResolvedMs(approval: ApprovalRecord): number {
 
 export function approvalDecisionLabel(approval: ApprovalRecord): string {
   const value = (approval.decision || approval.status || "").trim().toLowerCase();
-  if (!value) return "Pending";
-  if (value === "allow-once") return "Approved (Once)";
-  if (value === "allow-always") return "Approved (Always)";
-  if (isApprovalApproved(value)) return "Approved";
-  if (isApprovalRejected(value)) return "Rejected";
-  if (value.includes("resolved")) return "Resolved";
+  if (!value) {return "Pending";}
+  if (value === "allow-once") {return "Approved (Once)";}
+  if (value === "allow-always") {return "Approved (Always)";}
+  if (isApprovalApproved(value)) {return "Approved";}
+  if (isApprovalRejected(value)) {return "Rejected";}
+  if (value.includes("resolved")) {return "Resolved";}
   return value.replace(/-/g, " ");
 }
 
 export function primaryCommand(command: string): string {
   const normalized = command.trim().replace(/\s+/g, " ");
-  if (!normalized) return "unknown";
+  if (!normalized) {return "unknown";}
   const tokens = normalized.split(" ");
   let cursor = 0;
 
@@ -294,7 +294,7 @@ export function primaryCommand(command: string): string {
   while (cursor < tokens.length && WRAPPER_TOKENS.has(tokens[cursor])) {
     cursor += 1;
   }
-  if (cursor >= tokens.length) return tokens[0];
+  if (cursor >= tokens.length) {return tokens[0];}
 
   return tokens[cursor].replace(/^['"]|['"]$/g, "");
 }
@@ -424,11 +424,11 @@ export function assessApprovalRisk(command: string): ApprovalRiskAssessment {
   const hasPipeline = /\|/.test(normalized);
 
   let score = 6;
-  for (const rule of matchedRules) score += rule.weight;
-  if (stepCount >= 2) score += 6;
-  if (stepCount >= 4) score += 8;
-  if (hasPipeline) score += 4;
-  if (normalized.length > 180) score += 4;
+  for (const rule of matchedRules) {score += rule.weight;}
+  if (stepCount >= 2) {score += 6;}
+  if (stepCount >= 4) {score += 8;}
+  if (hasPipeline) {score += 4;}
+  if (normalized.length > 180) {score += 4;}
   score = Math.min(score, 99);
 
   const level: ApprovalRiskLevel =
@@ -454,7 +454,7 @@ export function assessApprovalRisk(command: string): ApprovalRiskAssessment {
 
 function firstCommandToken(command: string): string | null {
   const trimmed = command.trim();
-  if (!trimmed) return null;
+  if (!trimmed) {return null;}
   const match = trimmed.match(/^(?:"([^"]+)"|'([^']+)'|([^\s]+))/);
   const raw = match ? match[1] || match[2] || match[3] : null;
   return raw?.trim() || null;
@@ -466,19 +466,19 @@ function firstCommandToken(command: string): string | null {
  */
 export function suggestAllowlistPattern(approval: ApprovalRecord): string | null {
   const resolvedPath = approval.resolvedPath?.trim();
-  if (resolvedPath) return resolvedPath;
+  if (resolvedPath) {return resolvedPath;}
 
   const token = firstCommandToken(approval.command);
-  if (!token) return null;
+  if (!token) {return null;}
 
-  if (token.startsWith("~") || token.startsWith("/")) return token;
+  if (token.startsWith("~") || token.startsWith("/")) {return token;}
   const looksLikePath = token.includes("/") || token.includes("\\");
-  if (!looksLikePath) return null;
+  if (!looksLikePath) {return null;}
 
   const cwd = approval.cwd?.trim();
-  if (!cwd) return token;
+  if (!cwd) {return token;}
   const base = cwd.endsWith("/") ? cwd.slice(0, -1) : cwd;
-  if (token.startsWith("./")) return `${base}/${token.slice(2)}`;
+  if (token.startsWith("./")) {return `${base}/${token.slice(2)}`;}
   return `${base}/${token}`;
 }
 
@@ -534,21 +534,21 @@ function globToRegExp(pattern: string): RegExp {
 }
 
 function firstHomePrefix(value: string | undefined): string | null {
-  if (!value) return null;
+  if (!value) {return null;}
   const normalized = value.replace(/\\/g, "/");
   const userMatch = normalized.match(/^\/Users\/[^/]+/);
-  if (userMatch?.[0]) return userMatch[0];
+  if (userMatch?.[0]) {return userMatch[0];}
   const homeMatch = normalized.match(/^\/home\/[^/]+/);
-  if (homeMatch?.[0]) return homeMatch[0];
+  if (homeMatch?.[0]) {return homeMatch[0];}
   return null;
 }
 
 function resolvePatternHome(pattern: string, cwd?: string): string {
-  if (!pattern.startsWith("~")) return pattern;
+  if (!pattern.startsWith("~")) {return pattern;}
   const homePrefix = firstHomePrefix(cwd);
-  if (!homePrefix) return pattern;
-  if (pattern === "~") return homePrefix;
-  if (pattern.startsWith("~/")) return `${homePrefix}/${pattern.slice(2)}`;
+  if (!homePrefix) {return pattern;}
+  if (pattern === "~") {return homePrefix;}
+  if (pattern.startsWith("~/")) {return `${homePrefix}/${pattern.slice(2)}`;}
   return pattern;
 }
 
@@ -556,7 +556,7 @@ function parentDir(pathLike: string): string | null {
   const normalized = pathLike.replace(/\\/g, "/");
   const trimmed = normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
   const idx = trimmed.lastIndexOf("/");
-  if (idx <= 0) return null;
+  if (idx <= 0) {return null;}
   return trimmed.slice(0, idx);
 }
 
@@ -568,7 +568,7 @@ function wildcardCount(pattern: string): number {
 
 export function isPathLikeAllowlistPattern(pattern: string): boolean {
   const trimmed = pattern.trim();
-  if (!trimmed) return false;
+  if (!trimmed) {return false;}
   return trimmed.includes("/") || trimmed.includes("\\") || trimmed.includes("~");
 }
 
@@ -578,9 +578,9 @@ export function matchesAllowlistPattern(params: {
   cwd?: string;
 }): boolean | null {
   const trimmed = params.pattern.trim();
-  if (!trimmed || !isPathLikeAllowlistPattern(trimmed)) return null;
+  if (!trimmed || !isPathLikeAllowlistPattern(trimmed)) {return null;}
   const targetPath = params.targetPath?.trim();
-  if (!targetPath) return null;
+  if (!targetPath) {return null;}
   const normalizedPattern = normalizeForMatch(resolvePatternHome(trimmed, params.cwd));
   const normalizedTarget = normalizeForMatch(targetPath);
   const regex = globToRegExp(normalizedPattern);
@@ -588,11 +588,11 @@ export function matchesAllowlistPattern(params: {
 }
 
 function classifyPatternScope(pattern: string): AllowlistPatternScope {
-  if (!isPathLikeAllowlistPattern(pattern)) return "invalid";
+  if (!isPathLikeAllowlistPattern(pattern)) {return "invalid";}
   const wc = wildcardCount(pattern);
-  if (wc === 0) return "exact";
-  if (wc === 1 && /\/\*$/.test(pattern) && !pattern.includes("**")) return "narrow";
-  if (pattern.includes("**") || wc >= 3 || /^~?\/\*\*?$/.test(pattern)) return "very-broad";
+  if (wc === 0) {return "exact";}
+  if (wc === 1 && pattern.endsWith('/*') && !pattern.includes("**")) {return "narrow";}
+  if (pattern.includes("**") || wc >= 3 || /^~?\/\*\*?$/.test(pattern)) {return "very-broad";}
   return "broad";
 }
 
@@ -648,8 +648,8 @@ export function previewAllowlistPattern(params: {
         });
 
   let matchSummary = "No executable path available for preview.";
-  if (matchesTarget === true) matchSummary = "Pattern matches the current executable path.";
-  if (matchesTarget === false) matchSummary = "Pattern does not match the current executable path.";
+  if (matchesTarget === true) {matchSummary = "Pattern matches the current executable path.";}
+  if (matchesTarget === false) {matchSummary = "Pattern does not match the current executable path.";}
   if (!params.targetPath && scope !== "invalid") {
     matchSummary = "Current executable path is unavailable; preview is limited.";
   }
@@ -673,7 +673,7 @@ export function buildAllowlistPatternSuggestions(
   approval: ApprovalRecord
 ): AllowlistPatternSuggestion[] {
   const base = suggestAllowlistPattern(approval);
-  if (!base) return [];
+  if (!base) {return [];}
   const normalized = base.replace(/\\/g, "/");
   const suggestions: AllowlistPatternSuggestion[] = [
     {
@@ -698,7 +698,7 @@ export function buildAllowlistPatternSuggestions(
 
   const seen = new Set<string>();
   return suggestions.filter((item) => {
-    if (!item.value.trim() || seen.has(item.value)) return false;
+    if (!item.value.trim() || seen.has(item.value)) {return false;}
     seen.add(item.value);
     return true;
   });

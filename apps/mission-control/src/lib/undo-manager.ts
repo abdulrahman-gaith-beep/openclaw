@@ -51,7 +51,7 @@ export function pushUndo(action: Omit<UndoableAction, "id" | "timestamp" | "expi
 
 export async function executeUndo(id: string): Promise<boolean> {
   const index = undoStack.findIndex((a) => a.id === id);
-  if (index === -1) return false;
+  if (index === -1) {return false;}
   
   const action = undoStack[index];
   if (action.expiresAt < Date.now()) {

@@ -19,13 +19,13 @@ export function useConnectionToast(
     const handleTransition = useCallback(
         (from: GatewayConnectionState, to: GatewayConnectionState) => {
             // Don't fire toasts during the first 5 seconds (initial connection)
-            if (Date.now() - mountTimeRef.current < 5_000) return;
+            if (Date.now() - mountTimeRef.current < 5_000) {return;}
 
             // Track if we've ever been connected
-            if (to === "connected") hasBeenConnectedRef.current = true;
+            if (to === "connected") {hasBeenConnectedRef.current = true;}
 
             // Only fire toasts after we've been connected at least once
-            if (!hasBeenConnectedRef.current) return;
+            if (!hasBeenConnectedRef.current) {return;}
 
             if (from === "connected" && to === "disconnected") {
                 showToast("Gateway disconnected — reconnecting…", "error");

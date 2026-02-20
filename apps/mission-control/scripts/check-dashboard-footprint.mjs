@@ -21,7 +21,7 @@ async function pathExists(target) {
 
 async function resolveWorkspaceRoot() {
   const fromEnv = process.env.OPENCLAW_WORKSPACE_ROOT?.trim();
-  if (fromEnv) return path.resolve(fromEnv);
+  if (fromEnv) {return path.resolve(fromEnv);}
 
   const parent = path.dirname(repoRoot);
   const markers = [
@@ -52,12 +52,12 @@ async function findPackageJsonFiles(root) {
     for (const entry of entries) {
       const full = path.join(current, entry.name);
       if (entry.isDirectory()) {
-        if (skipDirNames.has(entry.name)) continue;
+        if (skipDirNames.has(entry.name)) {continue;}
         await walk(full);
         continue;
       }
-      if (!entry.isFile()) continue;
-      if (entry.name === "package.json") out.push(full);
+      if (!entry.isFile()) {continue;}
+      if (entry.name === "package.json") {out.push(full);}
     }
   }
   await walk(root);
@@ -73,7 +73,7 @@ function readJsonSafe(raw, filePath) {
     return JSON.parse(raw);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Invalid JSON in ${filePath}: ${message}`);
+    throw new Error(`Invalid JSON in ${filePath}: ${message}`, { cause: error });
   }
 }
 
@@ -84,9 +84,9 @@ const allowedDashboardPackageGlobs = new Set([
 ]);
 
 function isAllowedDashboardPackage(relPath) {
-  if (allowedDashboardPackageGlobs.has(relPath)) return true;
+  if (allowedDashboardPackageGlobs.has(relPath)) {return true;}
   // When running from the mission-control repo alone, allow local package.
-  if (relPath === "package.json") return true;
+  if (relPath === "package.json") {return true;}
   return false;
 }
 
@@ -99,7 +99,7 @@ async function main() {
     const raw = await fs.readFile(filePath, "utf8");
     const parsed = readJsonSafe(raw, filePath);
     const name = typeof parsed.name === "string" ? parsed.name : "";
-    if (!isDashboardPackage(name)) continue;
+    if (!isDashboardPackage(name)) {continue;}
     const rel = normalizeRel(workspaceRoot, filePath);
     dashboardPackages.push({ rel, name });
   }

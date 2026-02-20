@@ -77,7 +77,7 @@ function defaultSkills(): SkillsCatalogFile {
 
 function safeReadJson<T>(filePath: string): T | null {
   try {
-    if (!fs.existsSync(filePath)) return null;
+    if (!fs.existsSync(filePath)) {return null;}
     const raw = fs.readFileSync(filePath, "utf8");
     return JSON.parse(raw) as T;
   } catch {
@@ -86,7 +86,7 @@ function safeReadJson<T>(filePath: string): T | null {
 }
 
 function isUsecaseCatalog(value: unknown): value is UsecaseCatalogFile {
-  if (!value || typeof value !== "object") return false;
+  if (!value || typeof value !== "object") {return false;}
   const maybe = value as Partial<UsecaseCatalogFile>;
   return (
     typeof maybe.generatedAt === "string" &&
@@ -96,7 +96,7 @@ function isUsecaseCatalog(value: unknown): value is UsecaseCatalogFile {
 }
 
 function isSkillsCatalog(value: unknown): value is SkillsCatalogFile {
-  if (!value || typeof value !== "object") return false;
+  if (!value || typeof value !== "object") {return false;}
   const maybe = value as Partial<SkillsCatalogFile>;
   return (
     typeof maybe.generatedAt === "string" &&

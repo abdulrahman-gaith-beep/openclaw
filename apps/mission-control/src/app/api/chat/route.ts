@@ -25,7 +25,7 @@ const SEND_TIMEOUT_MS = 8000;
  * Gateway canonicalizes as: agent:<agentId>:<sessionKey>
  */
 function resolveSessionKey(raw?: string | null): string {
-  if (raw && raw.startsWith("agent:")) return raw;
+  if (raw && raw.startsWith("agent:")) {return raw;}
   const suffix = raw || "mission-control:chat";
   return `agent:${DEFAULT_AGENT}:${suffix}`;
 }

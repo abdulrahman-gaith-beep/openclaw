@@ -31,7 +31,7 @@ function resolveGatewaySocketTarget(): { host: string; port: number } {
     const parsed = new URL(raw);
     const host = parsed.hostname || fallback.host;
     const port = Number(parsed.port || fallback.port);
-    if (!host || !Number.isFinite(port) || port <= 0) return fallback;
+    if (!host || !Number.isFinite(port) || port <= 0) {return fallback;}
     return { host, port };
   } catch {
     return fallback;
@@ -47,7 +47,7 @@ async function canOpenSocket(
     const socket = net.createConnection({ host, port });
     let settled = false;
     const done = (ok: boolean) => {
-      if (settled) return;
+      if (settled) {return;}
       settled = true;
       socket.destroy();
       resolve(ok);
@@ -64,7 +64,7 @@ async function waitForGatewayReady(timeoutMs = 20_000): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
-    if (await canOpenSocket(host, port)) return true;
+    if (await canOpenSocket(host, port)) {return true;}
     await sleep(350);
   }
 

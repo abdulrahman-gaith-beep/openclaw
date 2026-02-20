@@ -42,7 +42,7 @@ export function UndoToast({ onUndoComplete }: UndoToastProps) {
 
   // Update remaining times every 100ms
   useEffect(() => {
-    if (actions.length === 0) return;
+    if (actions.length === 0) {return;}
 
     const interval = setInterval(() => {
       const times: Record<string, number> = {};
@@ -51,7 +51,7 @@ export function UndoToast({ onUndoComplete }: UndoToastProps) {
       actions.forEach((action) => {
         const remaining = getUndoRemainingTime(action);
         times[action.id] = remaining;
-        if (remaining <= 0) hasExpired = true;
+        if (remaining <= 0) {hasExpired = true;}
       });
 
       setRemainingTimes(times);
@@ -86,7 +86,7 @@ export function UndoToast({ onUndoComplete }: UndoToastProps) {
     clearUndo(id);
   }, []);
 
-  if (actions.length === 0) return null;
+  if (actions.length === 0) {return null;}
 
   return (
     <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-2 max-w-sm" role="log" aria-live="assertive" aria-label="Undo notifications">
@@ -180,7 +180,7 @@ export function useUndoKeyboard(onUndo: () => void) {
         if (stack.length > 0) {
           e.preventDefault();
           executeUndo(stack[0].id).then((success) => {
-            if (success) onUndo();
+            if (success) {onUndo();}
           });
         }
       }

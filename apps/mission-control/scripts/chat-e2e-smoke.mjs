@@ -13,7 +13,7 @@ let csrfToken = "";
 let csrfCookie = "";
 
 async function ensureCsrf() {
-  if (csrfToken && csrfCookie) return;
+  if (csrfToken && csrfCookie) {return;}
   const response = await fetch(new URL("/api/csrf-token", baseUrl));
   if (!response.ok) {
     throw new Error(`Failed to initialize CSRF token: ${response.status}`);
@@ -79,7 +79,7 @@ results.push({
   status: sessions.response.status,
   elapsedMs: sessions.elapsedMs,
 });
-if (!sessionsPass) failed = true;
+if (!sessionsPass) {failed = true;}
 
 // 2) Send a chat message (streaming/queued path).
 const send = await request("/api/chat", {
@@ -98,7 +98,7 @@ results.push({
   elapsedMs: send.elapsedMs,
   body: send.data,
 });
-if (!sendPass) failed = true;
+if (!sendPass) {failed = true;}
 
 // 3) Read chat history for same session key.
 const history = await request(`/api/chat?sessionKey=${encodeURIComponent(sessionKey)}&limit=20`, {
@@ -111,7 +111,7 @@ results.push({
   status: history.response.status,
   elapsedMs: history.elapsedMs,
 });
-if (!historyPass) failed = true;
+if (!historyPass) {failed = true;}
 
 // 4) Update session metadata.
 const patchSession = await request("/api/chat/sessions", {
@@ -129,7 +129,7 @@ results.push({
   status: patchSession.response.status,
   elapsedMs: patchSession.elapsedMs,
 });
-if (!patchPass) failed = true;
+if (!patchPass) {failed = true;}
 
 // 5) Delete session.
 const deleteSession = await request("/api/chat/sessions", {
@@ -146,7 +146,7 @@ results.push({
   status: deleteSession.response.status,
   elapsedMs: deleteSession.elapsedMs,
 });
-if (!deletePass) failed = true;
+if (!deletePass) {failed = true;}
 
 const outputPath = path.join(outputDir, "chat-e2e-smoke-results.json");
 await fs.writeFile(outputPath, `${JSON.stringify(results, null, 2)}\n`, "utf8");
@@ -159,4 +159,4 @@ const summary = {
 console.log(`Chat e2e smoke summary: ${JSON.stringify(summary)}`);
 console.log(`Details: ${outputPath}`);
 
-if (failed) process.exit(1);
+if (failed) {process.exit(1);}

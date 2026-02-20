@@ -135,7 +135,7 @@ function DashboardInner() {
 
   // Derive workspace options dynamically from the active profile's linked workspaces
   const workspaceOptions = useMemo(() => {
-    if (!activeProfile) return [];
+    if (!activeProfile) {return [];}
     return activeProfile.workspaces.map((pw) => ({
       id: pw.workspace_id,
       label: pw.label || pw.workspace_id,
@@ -144,17 +144,17 @@ function DashboardInner() {
   }, [activeProfile]);
 
   const [activeWorkspace, setActiveWorkspace] = useState<string>(() => {
-    if (typeof window === "undefined") return DEFAULT_WORKSPACE;
+    if (typeof window === "undefined") {return DEFAULT_WORKSPACE;}
     const fromQuery = new URLSearchParams(window.location.search).get("workspace");
-    if (fromQuery) return fromQuery;
+    if (fromQuery) {return fromQuery;}
     const fromStorage = window.localStorage.getItem("mission-control:workspace");
     return fromStorage || DEFAULT_WORKSPACE;
   });
 
   const validWorkspaceIds = useMemo(() => workspaceOptions.map((ws) => ws.id), [workspaceOptions]);
   const effectiveWorkspace = useMemo<string>(() => {
-    if (!activeProfile) return activeWorkspace;
-    if (validWorkspaceIds.includes(activeWorkspace)) return activeWorkspace;
+    if (!activeProfile) {return activeWorkspace;}
+    if (validWorkspaceIds.includes(activeWorkspace)) {return activeWorkspace;}
     return validWorkspaceIds[0] || DEFAULT_WORKSPACE;
   }, [activeProfile, validWorkspaceIds, activeWorkspace]);
 
@@ -274,7 +274,7 @@ function DashboardInner() {
   const viewOwnsScroll = activeView === "chat";
 
   const openTaskDetail = useCallback((task: Task) => {
-    if (Date.now() < suppressTaskDetailOpenUntilRef.current) return;
+    if (Date.now() < suppressTaskDetailOpenUntilRef.current) {return;}
     taskDetailTaskIdRef.current = task.id;
     setShowTaskDetail(task);
   }, []);
@@ -399,7 +399,7 @@ function DashboardInner() {
   );
 
   useEffect(() => {
-    if (activeView !== "board" || showCreateModal) return;
+    if (activeView !== "board" || showCreateModal) {return;}
     void loadFavoriteQuickActions();
   }, [activeView, showCreateModal, loadFavoriteQuickActions]);
 
@@ -536,7 +536,7 @@ function DashboardInner() {
                   }}
                   onOpenTask={(taskId) => {
                     const task = tasks.find((t) => t.id === taskId);
-                    if (task) openTaskDetail(task);
+                    if (task) {openTaskDetail(task);}
                   }}
                 />
               </ViewErrorBoundary>
@@ -658,7 +658,7 @@ function DashboardInner() {
           }}
           onRefresh={async () => {
             const taskId = taskDetailTaskIdRef.current;
-            if (!taskId) return;
+            if (!taskId) {return;}
             try {
               const params = new URLSearchParams({ workspace_id: effectiveWorkspace });
               const res = await apiFetch(`/api/tasks?${params.toString()}`);

@@ -43,7 +43,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
         id: uuidv4(),
         task_id: taskId,
         author_type: "user",
-        content: sanitizeInput(feedback!),
+        content: sanitizeInput(feedback),
       });
 
       logActivity({
@@ -83,7 +83,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
     const prompt = isRework
       ? buildReworkPrompt(
           task,
-          sanitizeInput(feedback!),
+          sanitizeInput(feedback),
           taskId,
           specialist?.systemPrompt,
           adaptiveContext

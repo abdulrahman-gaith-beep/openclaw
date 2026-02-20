@@ -42,15 +42,15 @@ interface ServicesSnapshot {
 }
 
 function formatRelativeTime(ts: string | null | undefined): string {
-  if (!ts) return "n/a";
+  if (!ts) {return "n/a";}
   const at = new Date(ts);
-  if (Number.isNaN(at.getTime())) return "n/a";
+  if (Number.isNaN(at.getTime())) {return "n/a";}
   const diffSec = Math.max(0, Math.floor((Date.now() - at.getTime()) / 1000));
-  if (diffSec < 60) return `${diffSec}s ago`;
+  if (diffSec < 60) {return `${diffSec}s ago`;}
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 60) {return `${diffMin}m ago`;}
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffHr < 24) {return `${diffHr}h ago`;}
   return `${Math.floor(diffHr / 24)}d ago`;
 }
 
@@ -166,7 +166,7 @@ export function OverviewCommandCenter({
   const recentResults = useMemo(() => {
     return tasks
       .filter((task) => task.status === "review" || task.status === "done")
-      .sort((a, b) => {
+      .toSorted((a, b) => {
         return (
           new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
         );

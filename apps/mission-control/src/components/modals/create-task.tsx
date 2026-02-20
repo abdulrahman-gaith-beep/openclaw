@@ -88,12 +88,12 @@ export function CreateTaskModal({
 
   // Match suggested specialist based on title and description
   const suggestedSpecialist = useMemo(() => {
-    if (suggestionDismissed) return null;
+    if (suggestionDismissed) {return null;}
     return suggestAgentForTask(`${title} ${description}`);
   }, [title, description, suggestionDismissed]);
 
   useEffect(() => {
-    if (!open || templates.length > 0 || templatesLoading) return;
+    if (!open || templates.length > 0 || templatesLoading) {return;}
     let cancelled = false;
 
     async function loadTemplates() {
@@ -127,7 +127,7 @@ export function CreateTaskModal({
   }, [open, templates.length, templatesLoading]);
 
   useEffect(() => {
-    if (!open || !seedDraft) return;
+    if (!open || !seedDraft) {return;}
     setTitle(seedDraft.title || "");
     setDescription(seedDraft.description || "");
     setPriority(seedDraft.priority || "medium");
@@ -159,10 +159,10 @@ export function CreateTaskModal({
       });
 
     return [...matching]
-      .sort((a, b) => {
+      .toSorted((a, b) => {
         const af = favoriteTemplateSet.has(a.id) ? 1 : 0;
         const bf = favoriteTemplateSet.has(b.id) ? 1 : 0;
-        if (af !== bf) return bf - af;
+        if (af !== bf) {return bf - af;}
         return b.rating - a.rating;
       })
       .slice(0, query ? 14 : 10);
@@ -240,7 +240,7 @@ export function CreateTaskModal({
     priority: string;
     assignedAgentId?: string;
   }) => {
-    if (submitting) return false;
+    if (submitting) {return false;}
     setSubmitting(true);
     setSubmitError(null);
     const ok = await Promise.resolve(
@@ -269,7 +269,7 @@ export function CreateTaskModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || submitting) return;
+    if (!title.trim() || submitting) {return;}
     await submitTask({
       title,
       description,
@@ -279,7 +279,7 @@ export function CreateTaskModal({
   };
 
   const handleCreateAndDispatchCurrent = async () => {
-    if (!title.trim() || submitting) return;
+    if (!title.trim() || submitting) {return;}
     const dispatchAgentId =
       agentId !== "none"
         ? agentId
@@ -313,7 +313,7 @@ export function CreateTaskModal({
   };
 
   const handleTemplateCreateAndDispatch = async (template: CommunityUsecaseTemplate) => {
-    if (submitting) return;
+    if (submitting) {return;}
     const built = buildTemplateTask(template);
     const dispatchAgentId =
       built.suggestedAgentId || (agentId !== "none" ? agentId : undefined);

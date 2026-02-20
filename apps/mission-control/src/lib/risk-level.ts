@@ -112,7 +112,7 @@ export function getRiskConfig(level: RiskLevel): RiskConfig {
 export function getCurrentRiskLevel(): RiskLevel {
     // Env override takes highest priority (useful for CI, staging)
     const envLevel = process.env.RISK_LEVEL;
-    if (isValidRiskLevel(envLevel)) return envLevel;
+    if (isValidRiskLevel(envLevel)) {return envLevel;}
 
     // Try reading from DB settings
     try {
@@ -121,7 +121,7 @@ export function getCurrentRiskLevel(): RiskLevel {
             getSetting: (key: string) => string | undefined;
         };
         const dbLevel = getSetting("risk_level");
-        if (isValidRiskLevel(dbLevel)) return dbLevel;
+        if (isValidRiskLevel(dbLevel)) {return dbLevel;}
     } catch {
         // DB not available yet (startup, build-time) — fall through
     }

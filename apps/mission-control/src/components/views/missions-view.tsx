@@ -35,14 +35,14 @@ export function MissionsView() {
   const toggleMission = (id: string) => {
     setExpandedMissions(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {next.delete(id);}
+      else {next.add(id);}
       return next;
     });
   };
 
   const loadInOrchestrator = (mission: Mission) => {
-    if (!mission.tasks || mission.tasks.length === 0) return;
+    if (!mission.tasks || mission.tasks.length === 0) {return;}
     try {
       // Map DB tasks to the shape Orchestrator expects
       const orchestratorTasks = mission.tasks.map(t => ({
@@ -75,7 +75,7 @@ export function MissionsView() {
   }, [fetchMissions]);
 
   const createMission = async () => {
-    if (!newName.trim()) return;
+    if (!newName.trim()) {return;}
     const params = new URLSearchParams(window.location.search);
     const workspace = params.get("workspace") || "golden";
     await fetch("/api/missions", {

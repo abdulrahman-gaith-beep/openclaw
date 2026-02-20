@@ -47,7 +47,7 @@ export function DispatchModal({
   const [result, setResult] = useState<string | null>(null);
 
   const handleDispatch = async () => {
-    if (!selectedAgent) return;
+    if (!selectedAgent) {return;}
     setDispatching(true);
     try {
       const res = await onDispatch(task.id, selectedAgent);

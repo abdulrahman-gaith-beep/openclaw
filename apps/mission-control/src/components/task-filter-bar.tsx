@@ -94,11 +94,11 @@ export function TaskFilterBar({
   // Count active filters
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (filters.search) count++;
-    if (filters.priority) count++;
-    if (filters.assignee) count++;
-    if (filters.status) count++;
-    if (filters.sortBy !== "created" || filters.sortOrder !== "desc") count++;
+    if (filters.search) {count++;}
+    if (filters.priority) {count++;}
+    if (filters.assignee) {count++;}
+    if (filters.status) {count++;}
+    if (filters.sortBy !== "created" || filters.sortOrder !== "desc") {count++;}
     return count;
   }, [filters]);
 

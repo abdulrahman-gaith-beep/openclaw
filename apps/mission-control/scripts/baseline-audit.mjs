@@ -14,7 +14,7 @@ let csrfToken = "";
 let csrfCookie = "";
 
 async function ensureCsrf() {
-  if (csrfToken && csrfCookie) return;
+  if (csrfToken && csrfCookie) {return;}
   const response = await fetch(new URL("/api/csrf-token", baseUrl));
   if (!response.ok) {
     throw new Error(`Failed to initialize CSRF token: ${response.status}`);
@@ -70,8 +70,8 @@ async function request(route, init = {}) {
  * @param {number} percentile
  */
 function percentile(values, percentile) {
-  if (values.length === 0) return null;
-  const sorted = [...values].sort((a, b) => a - b);
+  if (values.length === 0) {return null;}
+  const sorted = [...values].toSorted((a, b) => a - b);
   const index = Math.min(
     sorted.length - 1,
     Math.max(0, Math.ceil((percentile / 100) * sorted.length) - 1)

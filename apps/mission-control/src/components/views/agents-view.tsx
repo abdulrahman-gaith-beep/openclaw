@@ -31,7 +31,7 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
   const [fileError, setFileError] = useState<string | null>(null);
 
   const handleCreate = async () => {
-    if (!newId.trim()) return;
+    if (!newId.trim()) {return;}
     setCreating(true);
     setCreateResult(null);
     try {
@@ -88,7 +88,7 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
   };
 
   const handleSaveFile = async () => {
-    if (!editingAgent) return;
+    if (!editingAgent) {return;}
     setSavingFile(true);
     setFileSaved(false);
     setFileError(null);
@@ -116,7 +116,7 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
   };
 
   const handleTabChange = async (fileName: "SOUL.md" | "INSTRUCTIONS.md") => {
-    if (!editingAgent) return;
+    if (!editingAgent) {return;}
     setActiveFile(fileName);
     setFileSaved(false);
     await loadFile(editingAgent.id, fileName);

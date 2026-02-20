@@ -475,7 +475,7 @@ function getMigrations(): MigrationDefinition[] {
         const profile = db
           .prepare("SELECT id FROM profiles WHERE id = ?")
           .get(abdulazizId) as { id: string } | undefined;
-        if (!profile) return; // Safety: skip if profile doesn't exist
+        if (!profile) {return;} // Safety: skip if profile doesn't exist
 
         const workspaces = db
           .prepare("SELECT id FROM workspaces")
@@ -515,7 +515,7 @@ function runMigrations(db: Database.Database): void {
   const migrations = getMigrations();
 
   for (const migration of migrations) {
-    if (hasMigration(db, migration.id)) continue;
+    if (hasMigration(db, migration.id)) {continue;}
     const apply = db.transaction(() => {
       migration.up(db);
       markMigrationApplied(db, migration);
@@ -617,7 +617,7 @@ export function updateMission(
     }
   }
 
-  if (fields.length === 0) return getMission(id);
+  if (fields.length === 0) {return getMission(id);}
 
   fields.push("updated_at = datetime('now')");
   values.push(id);
@@ -777,7 +777,7 @@ export function updateTask(
     }
   }
 
-  if (fields.length === 0) return getTask(id);
+  if (fields.length === 0) {return getTask(id);}
 
   fields.push("updated_at = datetime('now')");
   values.push(id);
@@ -1137,7 +1137,7 @@ export function updateWorkspace(
     }
   }
 
-  if (fields.length === 0) return getWorkspace(id);
+  if (fields.length === 0) {return getWorkspace(id);}
 
   fields.push("updated_at = datetime('now')");
   values.push(id);
@@ -1213,7 +1213,7 @@ export function updateProfile(
     }
   }
 
-  if (fields.length === 0) return getProfile(id);
+  if (fields.length === 0) {return getProfile(id);}
 
   values.push(id);
 
@@ -1428,7 +1428,7 @@ export function updateEmployee(
     }
   }
 
-  if (fields.length === 0) return getEmployee(id);
+  if (fields.length === 0) {return getEmployee(id);}
 
   fields.push("updated_at = datetime('now')");
   values.push(id);
@@ -1564,7 +1564,7 @@ export function updateEmployeeSchedule(
     }
   }
 
-  if (fields.length === 0) return getEmployeeSchedule(id);
+  if (fields.length === 0) {return getEmployeeSchedule(id);}
 
   fields.push("updated_at = datetime('now')");
   values.push(id);
@@ -1812,7 +1812,7 @@ export function updateApiKey(
     }
   }
 
-  if (fields.length === 0) return getApiKey(id);
+  if (fields.length === 0) {return getApiKey(id);}
 
   fields.push("updated_at = datetime('now')");
   values.push(id);
@@ -1911,7 +1911,7 @@ export function updateLocalModel(
     }
   }
 
-  if (fields.length === 0) return getLocalModel(id);
+  if (fields.length === 0) {return getLocalModel(id);}
 
   fields.push("updated_at = datetime('now')");
   values.push(id);

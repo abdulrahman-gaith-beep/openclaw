@@ -21,17 +21,17 @@ export function timeAgo(dateStr: string): string {
   
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
   
-  if (seconds < 0) return "just now"; // Future date edge case
-  if (seconds < 60) return "just now";
+  if (seconds < 0) {return "just now";} // Future date edge case
+  if (seconds < 60) {return "just now";}
   
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) {return `${minutes}m ago`;}
   
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) {return `${hours}h ago`;}
   
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
+  if (days < 30) {return `${days}d ago`;}
   
   const months = Math.floor(days / 30);
   return `${months}mo ago`;
@@ -60,8 +60,8 @@ export function formatTime(dateStr: string): string {
  * Format elapsed seconds as "Xm Ys"
  */
 export function formatElapsed(seconds: number): string {
-  if (seconds < 0) return "0s";
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 0) {return "0s";}
+  if (seconds < 60) {return `${seconds}s`;}
   
   const minutes = Math.floor(seconds / 60);
   const remaining = seconds % 60;
@@ -138,21 +138,21 @@ export function getStatusColor(status: string): string {
 // --- Activity Styling ---
 
 export function getActivityColor(type: string): string {
-  if (type.includes("created")) return "text-primary font-bold";
-  if (type.includes("assigned")) return "text-blue-400 font-bold";
-  if (type.includes("progress")) return "text-green-500 font-bold";
-  if (type.includes("review")) return "text-purple-400 font-bold";
-  if (type.includes("deleted")) return "text-red-400 font-bold";
-  if (type.includes("agent")) return "text-green-500 font-bold";
+  if (type.includes("created")) {return "text-primary font-bold";}
+  if (type.includes("assigned")) {return "text-blue-400 font-bold";}
+  if (type.includes("progress")) {return "text-green-500 font-bold";}
+  if (type.includes("review")) {return "text-purple-400 font-bold";}
+  if (type.includes("deleted")) {return "text-red-400 font-bold";}
+  if (type.includes("agent")) {return "text-green-500 font-bold";}
   return "text-primary font-bold";
 }
 
 export function getActivityLabel(type: string): string {
-  if (type.includes("created")) return "Info:";
-  if (type.includes("assigned")) return "Agent:";
-  if (type.includes("progress")) return "Agent:";
-  if (type.includes("review")) return "System:";
-  if (type.includes("agent")) return "Agent:";
+  if (type.includes("created")) {return "Info:";}
+  if (type.includes("assigned")) {return "Agent:";}
+  if (type.includes("progress")) {return "Agent:";}
+  if (type.includes("review")) {return "System:";}
+  if (type.includes("agent")) {return "Agent:";}
   return "System:";
 }
 

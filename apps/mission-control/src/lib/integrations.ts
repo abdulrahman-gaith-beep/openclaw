@@ -55,7 +55,7 @@ function ensureIntegrationsDir(): void {
 }
 
 function maskToken(token: string): string {
-  if (!token || token.length < 12) return "****";
+  if (!token || token.length < 12) {return "****";}
   return `${token.slice(0, 8)}...${token.slice(-4)}`;
 }
 
@@ -71,10 +71,10 @@ export function readIntegrationsStore(): IntegrationStore {
     const out: IntegrationStore = {};
     for (const service of INTEGRATION_SERVICES) {
       const value = raw?.[service];
-      if (!value || typeof value !== "object") continue;
+      if (!value || typeof value !== "object") {continue;}
       const obj = value as Record<string, unknown>;
       const token = typeof obj.token === "string" ? obj.token.trim() : "";
-      if (!token) continue;
+      if (!token) {continue;}
       out[service] = {
         token,
         username: typeof obj.username === "string" ? obj.username : undefined,
@@ -134,7 +134,7 @@ export function upsertIntegration(params: {
 
 export function removeIntegration(service: IntegrationService): boolean {
   const store = readIntegrationsStore();
-  if (!store[service]) return false;
+  if (!store[service]) {return false;}
   delete store[service];
   writeIntegrationsStore(store);
   return true;

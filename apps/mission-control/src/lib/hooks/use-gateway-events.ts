@@ -32,7 +32,7 @@ class GatewayEventBus {
   private readonly STALE_CHECK_INTERVAL_MS = 5_000;
 
   private notifyState(state: GatewayConnectionState): void {
-    if (this.state === state) return;
+    if (this.state === state) {return;}
     this.state = state;
     for (const listener of this.stateListeners) {
       try {
@@ -52,18 +52,18 @@ class GatewayEventBus {
   }
 
   private clearReconnectTimer(): void {
-    if (!this.reconnectTimer) return;
+    if (!this.reconnectTimer) {return;}
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
   }
 
   private startStaleWatch(): void {
-    if (this.staleTimer || typeof window === "undefined") return;
+    if (this.staleTimer || typeof window === "undefined") {return;}
 
     this.staleTimer = setInterval(() => {
-      if (!this.eventSource) return;
+      if (!this.eventSource) {return;}
       const staleForMs = Date.now() - this.lastActivityAt;
-      if (staleForMs <= this.STALE_TIMEOUT_MS) return;
+      if (staleForMs <= this.STALE_TIMEOUT_MS) {return;}
 
       // If heartbeats stop, recycle the stream to force a fresh connection.
       this.eventSource.close();
@@ -73,7 +73,7 @@ class GatewayEventBus {
   }
 
   private stopStaleWatch(): void {
-    if (!this.staleTimer) return;
+    if (!this.staleTimer) {return;}
     clearInterval(this.staleTimer);
     this.staleTimer = null;
   }
@@ -83,7 +83,7 @@ class GatewayEventBus {
       this.notifyState("disconnected");
       return;
     }
-    if (this.reconnectTimer) return;
+    if (this.reconnectTimer) {return;}
 
     const baseDelay = Math.min(1000 * 2 ** this.reconnectAttempts, 15_000);
     const jitter = Math.floor(Math.random() * 400);
@@ -98,9 +98,9 @@ class GatewayEventBus {
   }
 
   private connect(): void {
-    if (typeof window === "undefined") return;
-    if (!this.hasSubscribers()) return;
-    if (this.eventSource) return;
+    if (typeof window === "undefined") {return;}
+    if (!this.hasSubscribers()) {return;}
+    if (this.eventSource) {return;}
 
     this.clearReconnectTimer();
     this.notifyState("connecting");
@@ -131,7 +131,7 @@ class GatewayEventBus {
     };
 
     source.onerror = () => {
-      if (this.eventSource !== source) return;
+      if (this.eventSource !== source) {return;}
       source.close();
       this.eventSource = null;
       this.scheduleReconnect();
@@ -139,7 +139,7 @@ class GatewayEventBus {
   }
 
   private disconnectIfIdle(): void {
-    if (this.hasSubscribers()) return;
+    if (this.hasSubscribers()) {return;}
     this.clearReconnectTimer();
     this.stopStaleWatch();
     if (this.eventSource) {

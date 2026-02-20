@@ -34,9 +34,9 @@ export function LocalModelsSection() {
         setError(null);
         try {
             const params = new URLSearchParams();
-            if (ollamaUrl) params.set("ollamaUrl", ollamaUrl);
+            if (ollamaUrl) {params.set("ollamaUrl", ollamaUrl);}
             const res = await fetch(`/api/settings/models?${params.toString()}`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             const json: LocalModelsData = await res.json();
             setData(json);
         } catch (err) {
@@ -50,7 +50,7 @@ export function LocalModelsSection() {
     useEffect(() => { fetchModels(); }, [fetchModels]);
 
     const isRegistered = (modelName: string): boolean => {
-        if (!data) return false;
+        if (!data) {return false;}
         return data.models.some((m) => m.model_id === modelName);
     };
 
@@ -62,7 +62,7 @@ export function LocalModelsSection() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name: modelName.split(":")[0], model_id: modelName, base_url: ollamaUrl, source: "ollama" }),
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             await fetchModels();
             addToast("success", `Registered ${modelName}`);
         } catch (err) {
@@ -73,7 +73,7 @@ export function LocalModelsSection() {
     };
 
     const handleAdd = async () => {
-        if (!newName.trim() || !newModelId.trim()) return;
+        if (!newName.trim() || !newModelId.trim()) {return;}
         setSaving(true);
         try {
             const res = await fetch("/api/settings/models", {
@@ -81,7 +81,7 @@ export function LocalModelsSection() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name: newName, model_id: newModelId, base_url: newBaseUrl }),
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             await fetchModels();
             setShowAddForm(false);
             setNewName("");
@@ -96,7 +96,7 @@ export function LocalModelsSection() {
     };
 
     const handleToggle = async (id: string, isActive: boolean) => {
-        if (!data) return;
+        if (!data) {return;}
         setData((prev) => prev ? { ...prev, models: prev.models.map((m) => (m.id === id ? { ...m, is_active: isActive } : m)) } : prev);
         try {
             const res = await fetch("/api/settings/models", {
@@ -104,7 +104,7 @@ export function LocalModelsSection() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id, is_active: isActive }),
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
         } catch {
             setData((prev) => prev ? { ...prev, models: prev.models.map((m) => (m.id === id ? { ...m, is_active: !isActive } : m)) } : prev);
             addToast("error", "Failed to toggle model");
@@ -115,7 +115,7 @@ export function LocalModelsSection() {
         setDeletingId(id);
         try {
             const res = await fetch(`/api/settings/models?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             await fetchModels();
             addToast("success", "Model removed");
         } catch (err) {

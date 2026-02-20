@@ -59,7 +59,7 @@ export const VALID_VIEWS = [
 export type ViewId = (typeof VALID_VIEWS)[number];
 
 export function getViewFromHash(): ViewId {
-  if (typeof window === "undefined") return "board";
+  if (typeof window === "undefined") {return "board";}
   const hash = window.location.hash.replace("#", "");
   return (VALID_VIEWS as readonly string[]).includes(hash) ? (hash as ViewId) : "board";
 }
@@ -116,16 +116,16 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = "mc:sidebar-collapsed";
 const SIDEBAR_COLLAPSED_EVENT = "mc:sidebar-collapsed-changed";
 
 function getSidebarCollapsedSnapshot(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined") {return false;}
   const stored = window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY);
   return stored == null ? false : stored === "true";
 }
 
 function subscribeToSidebarCollapsed(onStoreChange: () => void) {
-  if (typeof window === "undefined") return () => { };
+  if (typeof window === "undefined") {return () => { };}
 
   const onStorage = (event: StorageEvent) => {
-    if (event.key && event.key !== SIDEBAR_COLLAPSED_STORAGE_KEY) return;
+    if (event.key && event.key !== SIDEBAR_COLLAPSED_STORAGE_KEY) {return;}
     onStoreChange();
   };
   const onLocal = () => onStoreChange();
@@ -164,7 +164,7 @@ export function Sidebar({
 
   const renderNavButton = (viewId: NavItemId) => {
     const item = itemsById.get(viewId);
-    if (!item) return null;
+    if (!item) {return null;}
 
     const isActive = activeView === item.id;
     const Icon = item.icon;
@@ -198,7 +198,7 @@ export function Sidebar({
       </button>
     );
 
-    if (!collapsed) return button;
+    if (!collapsed) {return button;}
 
     return (
       <Tooltip key={item.id}>

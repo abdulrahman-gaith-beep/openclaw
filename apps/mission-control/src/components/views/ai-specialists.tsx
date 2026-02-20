@@ -228,16 +228,16 @@ function AgentIcon({
 }
 
 function toRecentTaskStatus(status: string): RecentTask["status"] {
-  if (status === "done") return "completed";
-  if (status === "in_progress" || status === "assigned") return "in_progress";
-  if (status === "inbox" || status === "review") return "pending";
+  if (status === "done") {return "completed";}
+  if (status === "in_progress" || status === "assigned") {return "in_progress";}
+  if (status === "inbox" || status === "review") {return "pending";}
   return "failed";
 }
 
 function getRecentTasksForAgent(tasks: Task[], agentId: string): RecentTask[] {
   return tasks
     .filter((task) => task.assigned_agent_id === agentId)
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       const aTs = new Date(a.updated_at || a.created_at || 0).getTime();
       const bTs = new Date(b.updated_at || b.created_at || 0).getTime();
       return bTs - aTs;
@@ -265,7 +265,7 @@ function useAgentStatuses(
   const completedTaskCountByAgent = useMemo(() => {
     const counts = new Map<string, number>();
     for (const task of tasks) {
-      if (!task.assigned_agent_id || task.status !== "done") continue;
+      if (!task.assigned_agent_id || task.status !== "done") {continue;}
       counts.set(
         task.assigned_agent_id,
         (counts.get(task.assigned_agent_id) ?? 0) + 1
@@ -361,7 +361,7 @@ function useAgentStatuses(
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch specialists");
       setStatuses((prev) => {
-        if (Object.keys(prev).length > 0) return prev;
+        if (Object.keys(prev).length > 0) {return prev;}
         return buildFallbackStatuses();
       });
     } finally {
@@ -1466,7 +1466,7 @@ function QuickAssignDialog({
           {/* Smart Suggestion */}
           {selectedTasks.size === 1 && (
             <SmartSuggestion
-              task={unassignedTasks.find((t) => selectedTasks.has(t.id))!}
+              task={unassignedTasks.find((t) => selectedTasks.has(t.id))}
               workspaceId={workspaceId}
               onSelectAgent={setSelectedAgent}
             />
@@ -1531,7 +1531,7 @@ function SmartSuggestion({
       } catch {
         // best effort; fallback below
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {setLoading(false);}
       }
 
       if (!cancelled) {
@@ -1574,7 +1574,7 @@ function SmartSuggestion({
     );
   }
 
-  if (!recommendation) return null;
+  if (!recommendation) {return null;}
 
   return (
     <div
@@ -1646,7 +1646,7 @@ function AssignTaskDialog({
     }
   };
 
-  if (!agent) return null;
+  if (!agent) {return null;}
 
   return (
     <Dialog
@@ -1928,7 +1928,7 @@ function ComparisonView({
 }: ComparisonViewProps) {
   const getBestWorstIndices = (row: ComparisonRowDef) => {
     const values = agents.map((agent, i) => row.getNumeric(agent, statuses[i]));
-    const sorted = [...values].sort((a, b) =>
+    const sorted = [...values].toSorted((a, b) =>
       row.bestIsHighest ? b - a : a - b,
     );
     const bestVal = sorted[0];
@@ -2083,7 +2083,7 @@ function BulkDispatchBar({
   onDispatch,
   onClear,
 }: BulkDispatchBarProps) {
-  if (selectedCount < 2) return null;
+  if (selectedCount < 2) {return null;}
 
   return (
     <div
@@ -2306,7 +2306,7 @@ export function AISpecialists({
 
   // New state for command center features
   const [viewMode, setViewMode] = useState<"grid" | "list" | "comparison">(() => {
-    if (typeof window === "undefined") return "grid";
+    if (typeof window === "undefined") {return "grid";}
     return (localStorage.getItem("oc-specialists-view") as "grid" | "list" | "comparison") || "grid";
   });
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
@@ -2319,14 +2319,14 @@ export function AISpecialists({
   const teams = useMemo(() => getAgentTeams(), []);
 
   const handleSpawnTeam = useCallback(async (team: AgentTeam) => {
-    if (!onCreateAndAssignTask) return;
+    if (!onCreateAndAssignTask) {return;}
 
     setIsSpawningTeam(team.id);
     try {
       // Create a task for each agent in the team
       for (const agentId of team.agentIds) {
         const agent = getSpecializedAgent(agentId);
-        if (!agent) continue;
+        if (!agent) {continue;}
 
         await onCreateAndAssignTask({
           title: `Initialize ${agent.name} for ${team.name}`,
@@ -2339,7 +2339,7 @@ export function AISpecialists({
     }
   }, [onCreateAndAssignTask]);
   const [favorites, setFavorites] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
+    if (typeof window === "undefined") {return new Set();}
     try {
       const saved = localStorage.getItem("oc-specialists-favorites");
       return saved ? new Set(JSON.parse(saved) as string[]) : new Set();
@@ -2461,23 +2461,23 @@ export function AISpecialists({
           !agent.description.toLowerCase().includes(q) &&
           !agent.capabilities.some((c) => c.toLowerCase().includes(q))
         )
-          return false;
+          {return false;}
       }
       // Category
       if (categoryFilter) {
         const catAgents = agentsByCategory[categoryFilter];
-        if (!catAgents?.some((a) => a.id === agent.id)) return false;
+        if (!catAgents?.some((a) => a.id === agent.id)) {return false;}
       }
       // Status
       if (statusFilter !== "all") {
         const s = getAgentStatus(agent.id);
-        if (statusFilter === "available" && s.status !== "available") return false;
-        if (statusFilter === "busy" && s.status !== "busy") return false;
+        if (statusFilter === "available" && s.status !== "available") {return false;}
+        if (statusFilter === "busy" && s.status !== "busy") {return false;}
       }
       // Quality threshold
       if (qualityMin > 0) {
         const s = getAgentStatus(agent.id);
-        if (s.qualityScore < qualityMin) return false;
+        if (s.qualityScore < qualityMin) {return false;}
       }
       return true;
     });
@@ -2526,7 +2526,7 @@ export function AISpecialists({
   }, [agentStatuses, allAgents, getAgentStatus]);
 
   const selectedAgentRecentTasks = useMemo(() => {
-    if (!selectedAgent) return [];
+    if (!selectedAgent) {return [];}
     return getRecentTasksForAgent(tasks, selectedAgent.id);
   }, [selectedAgent, tasks]);
 
@@ -2553,7 +2553,7 @@ export function AISpecialists({
   };
 
   const handleCreateAndAssign = async (title: string, description: string) => {
-    if (!assignTarget || !onCreateAndAssignTask) return false;
+    if (!assignTarget || !onCreateAndAssignTask) {return false;}
     return Promise.resolve(
       onCreateAndAssignTask({
         title,
@@ -2566,16 +2566,16 @@ export function AISpecialists({
   const toggleFavorite = useCallback((agentId: string) => {
     setFavorites((prev) => {
       const next = new Set(prev);
-      if (next.has(agentId)) next.delete(agentId);
-      else next.add(agentId);
+      if (next.has(agentId)) {next.delete(agentId);}
+      else {next.add(agentId);}
       return next;
     });
   }, []);
 
   const toggleCompare = useCallback((agentId: string) => {
     setCompareList((prev) => {
-      if (prev.includes(agentId)) return prev.filter((id) => id !== agentId);
-      if (prev.length >= 3) return prev;
+      if (prev.includes(agentId)) {return prev.filter((id) => id !== agentId);}
+      if (prev.length >= 3) {return prev;}
       return [...prev, agentId];
     });
   }, []);
@@ -2720,7 +2720,7 @@ export function AISpecialists({
                                 key={suggestion.id}
                                 className="w-full text-left rounded-md border border-border p-2 hover:bg-muted/30 transition-colors"
                                 onClick={() => {
-                                  if (specialist) setSelectedAgent(specialist);
+                                  if (specialist) {setSelectedAgent(specialist);}
                                 }}
                               >
                                 <div className="flex items-center justify-between gap-2 mb-1">
@@ -2905,7 +2905,7 @@ export function AISpecialists({
                 const visibleAgents = categoryAgents.filter(
                   (a) => filteredAgents.some((fa) => fa.id === a.id) && !favorites.has(a.id)
                 );
-                if (visibleAgents.length === 0) return null;
+                if (visibleAgents.length === 0) {return null;}
                 return (
                   <section key={category} aria-labelledby={`category-${category}`}>
                     <h2

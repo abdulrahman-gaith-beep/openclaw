@@ -192,7 +192,7 @@ export function WebSourcesPanel({
 
   const panelRef = useRef<HTMLDivElement>(null);
 
-  if (sources.length === 0) return null;
+  if (sources.length === 0) {return null;}
 
   const visibleSources = isExpanded ? sources : sources.slice(0, maxVisible);
   const hasMore = sources.length > maxVisible;

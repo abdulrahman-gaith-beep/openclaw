@@ -121,8 +121,8 @@ export const POST = withApiGuard(async (request: NextRequest) => {
       ? JSON.stringify(body.parameters)
       : "{}";
 
-    if (!name) throw new UserError("name is required", 400);
-    if (!modelId) throw new UserError("model_id is required", 400);
+    if (!name) {throw new UserError("name is required", 400);}
+    if (!modelId) {throw new UserError("model_id is required", 400);}
 
     const model = createLocalModel({
       id: uuidv4(),
@@ -147,10 +147,10 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
   try {
     const body = await request.json();
     const id = body?.id;
-    if (!id) throw new UserError("id is required", 400);
+    if (!id) {throw new UserError("id is required", 400);}
 
     const existing = getLocalModel(id);
-    if (!existing) throw new UserError("Model not found", 404);
+    if (!existing) {throw new UserError("Model not found", 404);}
 
     // If healthCheck=true, ping the model's provider
     if (body.healthCheck === true) {
@@ -173,21 +173,21 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
 
     // Build patch from allowed fields
     const patch: Record<string, unknown> = {};
-    if (body.name !== undefined) patch.name = body.name.trim();
+    if (body.name !== undefined) {patch.name = body.name.trim();}
     if (body.model_id !== undefined)
-      patch.model_id = body.model_id.trim();
+      {patch.model_id = body.model_id.trim();}
     if (body.base_url !== undefined)
-      patch.base_url = body.base_url.trim();
+      {patch.base_url = body.base_url.trim();}
     if (body.is_active !== undefined)
-      patch.is_active = body.is_active ? 1 : 0;
+      {patch.is_active = body.is_active ? 1 : 0;}
     if (body.parameters !== undefined)
-      patch.parameters = JSON.stringify(body.parameters);
+      {patch.parameters = JSON.stringify(body.parameters);}
 
     const updated = updateLocalModel(
       id,
       patch as Parameters<typeof updateLocalModel>[1]
     );
-    if (!updated) throw new UserError("Model not found", 404);
+    if (!updated) {throw new UserError("Model not found", 404);}
 
     return NextResponse.json({ ok: true, model: updated });
   } catch (error) {
@@ -200,10 +200,10 @@ export const DELETE = withApiGuard(async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
-    if (!id) throw new UserError("id query param is required", 400);
+    if (!id) {throw new UserError("id query param is required", 400);}
 
     const existing = getLocalModel(id);
-    if (!existing) throw new UserError("Model not found", 404);
+    if (!existing) {throw new UserError("Model not found", 404);}
 
     deleteLocalModel(id);
     return NextResponse.json({ ok: true });

@@ -57,7 +57,7 @@ export function useProfiles(): ProfileContextType {
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfileId, setActiveProfileId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
+    if (typeof window === "undefined") {return null;}
     return localStorage.getItem(STORAGE_KEY);
   });
   const [loading, setLoading] = useState(true);
@@ -94,7 +94,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     void loadProfiles().then((fetched) => {
-      if (cancelled) return;
+      if (cancelled) {return;}
       setProfiles(fetched);
       setLoading(false);
 

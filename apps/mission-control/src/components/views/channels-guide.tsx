@@ -846,7 +846,7 @@ function ConnectForm({
     };
 
     const handleDisconnect = async () => {
-        if (!window.confirm(`Disconnect ${platform.name}? You can reconnect anytime.`)) return;
+        if (!window.confirm(`Disconnect ${platform.name}? You can reconnect anytime.`)) {return;}
         setDisconnecting(true);
         try {
             await onDisconnect();
@@ -1049,7 +1049,7 @@ function PlatformCard({
                         onClick={(e) => {
                             e.stopPropagation();
                             setShowConnect(!showConnect);
-                            if (!expanded) setExpanded(true);
+                            if (!expanded) {setExpanded(true);}
                         }}
                     >
                         {isConnected ? (
@@ -1283,7 +1283,7 @@ export function ChannelsGuidePage() {
     }, [fetchIntegrations]);
 
     const filteredPlatforms = useMemo(() => {
-        if (!searchQuery.trim()) return PLATFORMS;
+        if (!searchQuery.trim()) {return PLATFORMS;}
         const q = searchQuery.toLowerCase();
         return PLATFORMS.filter(
             (p) =>

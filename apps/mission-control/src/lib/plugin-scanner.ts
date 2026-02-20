@@ -148,7 +148,7 @@ interface PluginManifest {
 
 function safeReadJson<T>(filePath: string): T | null {
   try {
-    if (!fs.existsSync(filePath)) return null;
+    if (!fs.existsSync(filePath)) {return null;}
     const raw = fs.readFileSync(filePath, "utf-8");
     return JSON.parse(raw) as T;
   } catch {
@@ -164,10 +164,10 @@ function findSkillFiles(
   dir: string
 ): { name: string; filePath: string }[] {
   const results: { name: string; filePath: string }[] = [];
-  if (!fs.existsSync(dir)) return results;
+  if (!fs.existsSync(dir)) {return results;}
 
   function walk(current: string, depth: number): void {
-    if (depth > 6) return;
+    if (depth > 6) {return;}
     let entries: fs.Dirent[];
     try {
       entries = fs.readdirSync(current, { withFileTypes: true });
@@ -207,7 +207,7 @@ function findAgentFiles(
   dir: string
 ): { name: string; filePath: string }[] {
   const agentsDir = path.join(dir, "agents");
-  if (!fs.existsSync(agentsDir)) return [];
+  if (!fs.existsSync(agentsDir)) {return [];}
 
   const results: { name: string; filePath: string }[] = [];
   try {
@@ -232,7 +232,7 @@ function findAgentFiles(
  */
 function findCommandFiles(dir: string): string[] {
   const commandsDir = path.join(dir, "commands");
-  if (!fs.existsSync(commandsDir)) return [];
+  if (!fs.existsSync(commandsDir)) {return [];}
 
   const results: string[] = [];
   try {
@@ -253,7 +253,7 @@ function findCommandFiles(dir: string): string[] {
  */
 function findHookFiles(dir: string): string[] {
   const hooksDir = path.join(dir, "hooks");
-  if (!fs.existsSync(hooksDir)) return [];
+  if (!fs.existsSync(hooksDir)) {return [];}
 
   const results: string[] = [];
   try {
@@ -274,7 +274,7 @@ function findHookFiles(dir: string): string[] {
  */
 function hasSymlinkedSkills(dir: string): boolean {
   const skillsDir = path.join(dir, "skills");
-  if (!fs.existsSync(skillsDir)) return false;
+  if (!fs.existsSync(skillsDir)) {return false;}
 
   try {
     const entries = fs.readdirSync(skillsDir);
@@ -282,7 +282,7 @@ function hasSymlinkedSkills(dir: string): boolean {
       const fullPath = path.join(skillsDir, entry);
       try {
         const stat = fs.lstatSync(fullPath);
-        if (stat.isSymbolicLink()) return true;
+        if (stat.isSymbolicLink()) {return true;}
       } catch {
         continue;
       }
@@ -300,10 +300,10 @@ function hasSymlinkedSkills(dir: string): boolean {
  */
 function resolveManifestPath(installPath: string): string | null {
   const direct = path.join(installPath, "plugin.json");
-  if (fs.existsSync(direct)) return direct;
+  if (fs.existsSync(direct)) {return direct;}
 
   const nested = path.join(installPath, ".claude-plugin", "plugin.json");
-  if (fs.existsSync(nested)) return nested;
+  if (fs.existsSync(nested)) {return nested;}
 
   return null;
 }
@@ -311,8 +311,8 @@ function resolveManifestPath(installPath: string): string | null {
 function extractAuthor(
   author: string | { name?: string; email?: string } | undefined
 ): string | undefined {
-  if (!author) return undefined;
-  if (typeof author === "string") return author;
+  if (!author) {return undefined;}
+  if (typeof author === "string") {return author;}
   return author.name || undefined;
 }
 
@@ -326,9 +326,9 @@ function extractSkillDescription(filePath: string): string | undefined {
     const lines = content.split("\n");
     for (const line of lines) {
       const trimmed = line.trim();
-      if (!trimmed) continue;
-      if (trimmed.startsWith("#")) continue;
-      if (trimmed.startsWith("---")) continue;
+      if (!trimmed) {continue;}
+      if (trimmed.startsWith("#")) {continue;}
+      if (trimmed.startsWith("---")) {continue;}
       return trimmed.length > 200
         ? trimmed.slice(0, 200) + "..."
         : trimmed;
@@ -364,7 +364,7 @@ export function scanPlugins(): PluginCatalog {
   )) {
     for (const installation of installations) {
       const installPath = installation.installPath;
-      if (!installPath || !fs.existsSync(installPath)) continue;
+      if (!installPath || !fs.existsSync(installPath)) {continue;}
 
       // Derive plugin id from key (e.g. "sentry@claude-plugins-official" -> "sentry")
       const pluginId = pluginKey.split("@")[0];
@@ -462,7 +462,7 @@ export function scanPlugins(): PluginCatalog {
     totalSkills,
     totalAgents,
     totalMcpServers,
-    categories: [...categorySet].sort(),
+    categories: [...categorySet].toSorted(),
     scannedAt: new Date().toISOString(),
   };
 }

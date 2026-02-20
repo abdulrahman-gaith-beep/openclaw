@@ -49,11 +49,11 @@ interface ExecApprovalsSnapshotPayload {
 }
 
 function sortPending(records: ApprovalRecord[]): ApprovalRecord[] {
-  return [...records].sort((a, b) => approvalCreatedMs(b) - approvalCreatedMs(a));
+  return [...records].toSorted((a, b) => approvalCreatedMs(b) - approvalCreatedMs(a));
 }
 
 function sortResolved(records: ApprovalRecord[]): ApprovalRecord[] {
-  return [...records].sort((a, b) => approvalResolvedMs(b) - approvalResolvedMs(a));
+  return [...records].toSorted((a, b) => approvalResolvedMs(b) - approvalResolvedMs(a));
 }
 
 function splitByState(records: ApprovalRecord[]): {
@@ -63,8 +63,8 @@ function splitByState(records: ApprovalRecord[]): {
   const pending: ApprovalRecord[] = [];
   const resolved: ApprovalRecord[] = [];
   for (const record of records) {
-    if (isApprovalResolved(record)) resolved.push(record);
-    else pending.push(record);
+    if (isApprovalResolved(record)) {resolved.push(record);}
+    else {pending.push(record);}
   }
   return { pending, resolved };
 }
@@ -75,18 +75,18 @@ function parseResolvedEvent(payload: unknown): {
   resolvedBy?: string;
   ts?: number;
 } | null {
-  if (!payload || typeof payload !== "object") return null;
+  if (!payload || typeof payload !== "object") {return null;}
   const record = payload as Record<string, unknown>;
   const id = typeof record.id === "string" ? record.id.trim() : "";
-  if (!id) return null;
+  if (!id) {return null;}
   const decision = typeof record.decision === "string" ? record.decision.trim() : undefined;
   const resolvedBy = typeof record.resolvedBy === "string" ? record.resolvedBy.trim() : undefined;
 
   let ts: number | undefined;
-  if (typeof record.ts === "number" && Number.isFinite(record.ts)) ts = record.ts;
+  if (typeof record.ts === "number" && Number.isFinite(record.ts)) {ts = record.ts;}
   if (typeof record.ts === "string") {
     const parsed = Number(record.ts);
-    if (Number.isFinite(parsed)) ts = parsed;
+    if (Number.isFinite(parsed)) {ts = parsed;}
   }
 
   return { id, decision, resolvedBy, ts };
@@ -124,7 +124,7 @@ function snapshotFromEvents(): {
 }
 
 async function ensureApprovalListeners(client: OpenClawClient): Promise<void> {
-  if (listenersAttached) return;
+  if (listenersAttached) {return;}
   if (listenersSetupPromise) {
     await listenersSetupPromise;
     return;
@@ -135,7 +135,7 @@ async function ensureApprovalListeners(client: OpenClawClient): Promise<void> {
 
     client.onEvent("exec.approval.requested", (payload) => {
       const parsed = normalizeApprovalRecords(payload);
-      if (parsed.length === 0) return;
+      if (parsed.length === 0) {return;}
 
       for (const entry of parsed) {
         eventPendingApprovals.set(entry.id, entry);
@@ -145,7 +145,7 @@ async function ensureApprovalListeners(client: OpenClawClient): Promise<void> {
 
     client.onEvent("exec.approval.resolved", (payload) => {
       const resolved = parseResolvedEvent(payload);
-      if (!resolved) return;
+      if (!resolved) {return;}
 
       const pending = eventPendingApprovals.get(resolved.id);
       eventPendingApprovals.delete(resolved.id);
@@ -187,10 +187,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function extractApprovalsSnapshot(payload: unknown): ExecApprovalsSnapshotPayload | null {
-  if (!isRecord(payload)) return null;
+  if (!isRecord(payload)) {return null;}
   const hash = typeof payload.hash === "string" ? payload.hash.trim() : "";
   const file = isRecord(payload.file) ? (payload.file as ExecApprovalsFile) : null;
-  if (!hash || !file) return null;
+  if (!hash || !file) {return null;}
   return { hash, file };
 }
 
@@ -221,7 +221,7 @@ function withAllowlistPattern(params: {
 
   const nextFile: ExecApprovalsFile = {
     ...params.file,
-    agents: { ...(params.file.agents ?? {}) },
+    agents: { ...params.file.agents },
   };
   const existingAgent = nextFile.agents?.[params.agentId] ?? {};
   const existingAllowlist = Array.isArray(existingAgent.allowlist)
@@ -262,7 +262,7 @@ async function resolveApprovalWithFallback(params: {
   try {
     result = await client.resolveExecApproval({ id, decision });
   } catch (error) {
-    if (!isInvalidDecisionError(error)) throw error;
+    if (!isInvalidDecisionError(error)) {throw error;}
     gatewayDecision = decision === "approve" ? "allow-once" : "deny";
     result = await client.resolveExecApproval({ id, decision: gatewayDecision });
   }
@@ -351,7 +351,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
           pattern,
         });
         alreadyExists = patch.alreadyExists;
-        if (alreadyExists) break;
+        if (alreadyExists) {break;}
 
         try {
           await client.setExecApprovals({

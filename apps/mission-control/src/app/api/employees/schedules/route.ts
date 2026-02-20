@@ -28,14 +28,14 @@ import { isValidWorkspaceId } from "@/lib/workspaces-server";
 function computeNextRunAt(cronExpression: string): string | null {
   try {
     const parts = cronExpression.trim().split(/\s+/);
-    if (parts.length < 5) return null;
+    if (parts.length < 5) {return null;}
 
     const [minPart, hourPart, domPart, monPart, dowPart] = parts;
 
     const parseField = (field: string, min: number, max: number): number[] => {
       if (field === "*") {
         const result: number[] = [];
-        for (let i = min; i <= max; i++) result.push(i);
+        for (let i = min; i <= max; i++) {result.push(i);}
         return result;
       }
       const values: number[] = [];
@@ -54,15 +54,15 @@ function computeNextRunAt(cronExpression: string): string | null {
               start = parseInt(range, 10);
             }
           }
-          for (let i = start; i <= end; i += step) values.push(i);
+          for (let i = start; i <= end; i += step) {values.push(i);}
         } else if (segment.includes("-")) {
           const [a, b] = segment.split("-");
-          for (let i = parseInt(a, 10); i <= parseInt(b, 10); i++) values.push(i);
+          for (let i = parseInt(a, 10); i <= parseInt(b, 10); i++) {values.push(i);}
         } else {
           values.push(parseInt(segment, 10));
         }
       }
-      return values.filter((v) => v >= min && v <= max).sort((a, b) => a - b);
+      return values.filter((v) => v >= min && v <= max).toSorted((a, b) => a - b);
     };
 
     const minutes = parseField(minPart, 0, 59);
@@ -190,18 +190,18 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
     }
 
     const existing = getEmployeeScheduleWithWorkspace(payload.id, payload.workspace_id);
-    if (!existing) throw new UserError("Schedule not found", 404);
+    if (!existing) {throw new UserError("Schedule not found", 404);}
 
     const patch: Record<string, unknown> = {};
 
-    if (payload.title != null) patch.title = sanitizeInput(payload.title);
-    if (payload.description != null) patch.description = sanitizeInput(payload.description);
-    if (payload.cron_expression != null) patch.cron_expression = payload.cron_expression;
-    if (payload.timezone != null) patch.timezone = payload.timezone;
-    if (payload.agent_id != null) patch.agent_id = payload.agent_id;
-    if (payload.priority != null) patch.priority = payload.priority;
-    if (payload.category != null) patch.category = payload.category;
-    if (payload.enabled != null) patch.enabled = payload.enabled ? 1 : 0;
+    if (payload.title != null) {patch.title = sanitizeInput(payload.title);}
+    if (payload.description != null) {patch.description = sanitizeInput(payload.description);}
+    if (payload.cron_expression != null) {patch.cron_expression = payload.cron_expression;}
+    if (payload.timezone != null) {patch.timezone = payload.timezone;}
+    if (payload.agent_id != null) {patch.agent_id = payload.agent_id;}
+    if (payload.priority != null) {patch.priority = payload.priority;}
+    if (payload.category != null) {patch.category = payload.category;}
+    if (payload.enabled != null) {patch.enabled = payload.enabled ? 1 : 0;}
 
     // Recompute next_run_at if cron_expression changed
     if (payload.cron_expression != null) {
@@ -213,7 +213,7 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
       patch as Parameters<typeof updateEmployeeSchedule>[1]
     );
 
-    if (!schedule) throw new UserError("Schedule not found", 404);
+    if (!schedule) {throw new UserError("Schedule not found", 404);}
 
     return NextResponse.json({ ok: true, schedule });
   } catch (error) {
@@ -234,7 +234,7 @@ export const DELETE = withApiGuard(async (request: NextRequest) => {
     }
 
     const existing = getEmployeeScheduleWithWorkspace(query.id, query.workspace_id);
-    if (!existing) throw new UserError("Schedule not found", 404);
+    if (!existing) {throw new UserError("Schedule not found", 404);}
 
     deleteEmployeeSchedule(query.id);
     return NextResponse.json({ ok: true });

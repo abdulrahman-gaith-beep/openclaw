@@ -41,7 +41,7 @@ export class ViewErrorBoundary extends Component<ErrorBoundaryProps, ErrorBounda
 
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) return this.props.fallback;
+      if (this.props.fallback) {return this.props.fallback;}
 
       return (
         <div className="flex-1 flex items-center justify-center p-12">

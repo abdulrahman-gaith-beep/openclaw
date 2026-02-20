@@ -118,9 +118,9 @@ export interface ConnectionMetrics {
 // --- Structured connection logging ---
 function gwLog(level: "info" | "warn" | "error", msg: string, meta?: Record<string, unknown>): void {
   const entry = { ts: new Date().toISOString(), src: "OpenClawClient", msg, ...meta };
-  if (level === "error") console.error(`[OpenClawClient] ${msg}`, entry);
-  else if (level === "warn") console.warn(`[OpenClawClient] ${msg}`, entry);
-  else console.log(`[OpenClawClient] ${msg}`, entry);
+  if (level === "error") {console.error(`[OpenClawClient] ${msg}`, entry);}
+  else if (level === "warn") {console.warn(`[OpenClawClient] ${msg}`, entry);}
+  else {console.log(`[OpenClawClient] ${msg}`, entry);}
 }
 
 interface PendingRequest {
@@ -274,16 +274,16 @@ export class OpenClawClient {
   }
 
   private startKeepAlive(): void {
-    if (this.keepAliveTimer) return;
+    if (this.keepAliveTimer) {return;}
     this.keepAliveTimer = setInterval(() => {
-      if (!this.isConnected() || this.keepAliveInFlight) return;
+      if (!this.isConnected() || this.keepAliveInFlight) {return;}
       // M1: Skip keep-alive during grace period after reconnect
-      if (this.reconnectedAt && Date.now() - this.reconnectedAt < 30_000) return;
+      if (this.reconnectedAt && Date.now() - this.reconnectedAt < 30_000) {return;}
       this.keepAliveInFlight = true;
       this.call("health", {}, 15_000)
         .catch(() => {
           // Recycle stale sockets to trigger reconnect quickly.
-          if (this.intentionalDisconnect) return;
+          if (this.intentionalDisconnect) {return;}
           try {
             this.ws?.terminate();
           } catch {
@@ -299,9 +299,9 @@ export class OpenClawClient {
   // H1: Monitor server tick events for silent connection death
   private startTickWatch(): void {
     this.lastTickAt = Date.now();
-    if (this.tickWatchTimer) clearInterval(this.tickWatchTimer);
+    if (this.tickWatchTimer) {clearInterval(this.tickWatchTimer);}
     this.tickWatchTimer = setInterval(() => {
-      if (!this.lastTickAt || this.intentionalDisconnect) return;
+      if (!this.lastTickAt || this.intentionalDisconnect) {return;}
       const gap = Date.now() - this.lastTickAt;
       if (gap > this.TICK_STALL_MS) {
         this.metricsTickStalls++;
@@ -322,7 +322,7 @@ export class OpenClawClient {
   }
 
   private stopKeepAlive(): void {
-    if (!this.keepAliveTimer) return;
+    if (!this.keepAliveTimer) {return;}
     clearInterval(this.keepAliveTimer);
     this.keepAliveTimer = null;
     this.keepAliveInFlight = false;
@@ -365,7 +365,7 @@ export class OpenClawClient {
   // --- Connection with proper Gateway protocol ---
 
   async connect(retryCount = 0): Promise<void> {
-    if (this.authenticated && this.ws?.readyState === WebSocket.OPEN) return;
+    if (this.authenticated && this.ws?.readyState === WebSocket.OPEN) {return;}
     if (this.connectPromise) {
       try {
         return await this.connectPromise;
@@ -382,11 +382,11 @@ export class OpenClawClient {
     this.connectPromise = new Promise((resolve, reject) => {
       let settled = false;
       const settle = (err?: Error) => {
-        if (settled) return;
+        if (settled) {return;}
         settled = true;
         this.connectPromise = null;
-        if (err) reject(err);
-        else resolve();
+        if (err) {reject(err);}
+        else {resolve();}
       };
 
       this.connectResolve = () => settle();
@@ -442,7 +442,7 @@ export class OpenClawClient {
           this.authenticated = false;
           this.stopKeepAlive();
           this.stopTickWatch();
-          if (this.ws === ws) this.ws = null;
+          if (this.ws === ws) {this.ws = null;}
           clearTimeout(connectTimeout);
           // Reject all pending requests to prevent UI hangs.
           for (const pending of this.pendingRequests.values()) {
@@ -484,7 +484,7 @@ export class OpenClawClient {
   }
 
   disconnect(): void {
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.reconnectTimer) {clearTimeout(this.reconnectTimer);}
     this.reconnectTimer = null;
     this.reconnectAttempts = 0;
     if (this.ws) {
@@ -505,7 +505,7 @@ export class OpenClawClient {
   }
 
   private scheduleReconnect(): void {
-    if (this.reconnectTimer) return;
+    if (this.reconnectTimer) {return;}
 
     // H3: Circuit breaker — after too many attempts, enter long cooldown
     if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
@@ -601,7 +601,7 @@ export class OpenClawClient {
     if (msg.type === "res") {
       const res = msg as unknown as ResponseFrame;
       const pending = this.pendingRequests.get(res.id);
-      if (!pending) return;
+      if (!pending) {return;}
 
       // The connect handshake sends an "accepted" then a final response.
       // Only skip "accepted" for the connect method — all other RPCs should resolve immediately.
@@ -685,7 +685,7 @@ export class OpenClawClient {
     // Register pending for the connect response
     const pending: PendingRequest = {
       resolve: () => {
-        if (connectTimeout) clearTimeout(connectTimeout);
+        if (connectTimeout) {clearTimeout(connectTimeout);}
         this.authenticated = true;
         this.reconnectAttempts = 0;
         this.reconnectedAt = Date.now(); // M1: track for grace period
@@ -695,14 +695,14 @@ export class OpenClawClient {
         this.metricsTotalConnections++;
         this.metricsCurrentConnectionStart = now;
         this.metricsLastConnectedAt = now;
-        if (!this.metricsFirstConnectedAt) this.metricsFirstConnectedAt = now;
+        if (!this.metricsFirstConnectedAt) {this.metricsFirstConnectedAt = now;}
         this.startKeepAlive();
         this.startTickWatch(); // H1: begin tick monitoring
         gwLog("info", "Connected to gateway", { connectionNumber: this.metricsTotalConnections });
         this.connectResolve?.();
       },
       reject: (err: unknown) => {
-        if (connectTimeout) clearTimeout(connectTimeout);
+        if (connectTimeout) {clearTimeout(connectTimeout);}
         this.connectReject?.(
           err instanceof Error ? err : new Error(String(err))
         );
@@ -805,7 +805,7 @@ export class OpenClawClient {
     const hash =
       (result?.hash as string) ??
       ((result?.config as Record<string, unknown>)?.hash as string);
-    if (!hash) throw new Error("Could not retrieve config hash from gateway");
+    if (!hash) {throw new Error("Could not retrieve config hash from gateway");}
     return hash;
   }
 
@@ -1156,7 +1156,7 @@ const _clientKey = "__openclawClientInstance";
 
 export function getOpenClawClient(): OpenClawClient {
   const cached = (globalThis as Record<string, unknown>)[_clientKey] as OpenClawClient | undefined;
-  if (cached) return cached;
+  if (cached) {return cached;}
   const url =
     process.env.OPENCLAW_GATEWAY_URL || "ws://127.0.0.1:18789";
   const authToken = process.env.OPENCLAW_AUTH_TOKEN;

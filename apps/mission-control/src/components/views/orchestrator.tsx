@@ -209,7 +209,7 @@ const TEMPLATES: Array<{
 
 function formatElapsed(ms: number): string {
   const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 60) {return `${seconds}s`;}
   const minutes = Math.floor(seconds / 60);
   const remaining = seconds % 60;
   return `${minutes}m ${remaining}s`;
@@ -268,7 +268,7 @@ export function Orchestrator({ workspaceId }: OrchestratorProps) {
   useEffect(() => {
     fetch("/api/agents")
       .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        if (!r.ok) {throw new Error(`HTTP ${r.status}`);}
         return r.json();
       })
       .then((d) => setAgents(d.agents || []))
@@ -289,7 +289,7 @@ export function Orchestrator({ workspaceId }: OrchestratorProps) {
   }, []);
 
   const scheduleRefresh = useCallback(() => {
-    if (refreshTimerRef.current) return;
+    if (refreshTimerRef.current) {return;}
     refreshTimerRef.current = setTimeout(() => {
       refreshTimerRef.current = null;
       fetchStatus().catch(() => {
@@ -304,7 +304,7 @@ export function Orchestrator({ workspaceId }: OrchestratorProps) {
 
   const handleGatewayEvent = useCallback(
     (event: GatewayEvent) => {
-      if (event.type !== "gateway_event") return;
+      if (event.type !== "gateway_event") {return;}
       const eventName = (event.event || "").toLowerCase();
       if (
         eventName.includes("orchestrator") ||
@@ -394,7 +394,7 @@ export function Orchestrator({ workspaceId }: OrchestratorProps) {
   // Launch all tasks
   const launchAll = async () => {
     const valid = taskDefs.filter((t) => t.title.trim() && t.agentId);
-    if (valid.length === 0) return;
+    if (valid.length === 0) {return;}
 
     setLaunching(true);
     setLastBatch(null);
@@ -433,7 +433,7 @@ export function Orchestrator({ workspaceId }: OrchestratorProps) {
   };
 
   const saveQueueAsMission = async () => {
-    if (!newMissionName.trim() || taskDefs.length === 0) return;
+    if (!newMissionName.trim() || taskDefs.length === 0) {return;}
     setSavingMission(true);
     try {
       const valid = taskDefs.filter((t) => t.title.trim() && t.agentId);
@@ -452,7 +452,7 @@ export function Orchestrator({ workspaceId }: OrchestratorProps) {
           })),
         }),
       });
-      if (!res.ok) throw new Error("Failed to save mission");
+      if (!res.ok) {throw new Error("Failed to save mission");}
       setShowSaveMissionModal(false);
       setNewMissionName("");
       setNewMissionDesc("");
@@ -709,7 +709,7 @@ export function Orchestrator({ workspaceId }: OrchestratorProps) {
                       size="sm"
                       variant="ghost"
                       onClick={() => {
-                        if (taskDefs.length > 0 && !confirm("Clear all tasks from the orchestrator?")) return;
+                        if (taskDefs.length > 0 && !confirm("Clear all tasks from the orchestrator?")) {return;}
                         setTaskDefs([]);
                       }}
                       className="text-muted-foreground hover:text-destructive gap-1.5"

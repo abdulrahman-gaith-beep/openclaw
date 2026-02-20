@@ -22,7 +22,7 @@ export function RiskLevelSection() {
         setLoading(true);
         try {
             const res = await fetch("/api/settings/risk-level");
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             const data: RiskLevelResponse = await res.json();
             setCurrentLevel(data.level);
             setConfig(data.config);
@@ -38,14 +38,14 @@ export function RiskLevelSection() {
     }, [fetchRiskLevel]);
 
     const handleChange = async (level: RiskLevel) => {
-        if (level === currentLevel || saving) return;
+        if (level === currentLevel || saving) {return;}
 
         // Confirm dangerous levels
         if (level === "insane" || level === "freedom") {
             const confirmed = window.confirm(
                 `Are you sure you want to set risk level to "${RISK_LEVEL_META[level].label}"? ${RISK_LEVEL_META[level].description}`
             );
-            if (!confirmed) return;
+            if (!confirmed) {return;}
         }
 
         setSaving(true);
@@ -58,7 +58,7 @@ export function RiskLevelSection() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ level }),
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
             const data = await res.json();
             setConfig(data.config);
             addToast("success", `Risk level set to ${RISK_LEVEL_META[level].label}`);

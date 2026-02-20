@@ -53,7 +53,7 @@ export function requireProfileWorkspaceAccess(
 
     // If no profile header is sent, allow the request (backward compatibility
     // for programmatic / gateway callers that don't have a profile concept).
-    if (!profileId) return null;
+    if (!profileId) {return null;}
 
     const profile = validateProfile(profileId);
     if (!profile) {

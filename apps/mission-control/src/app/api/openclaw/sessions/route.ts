@@ -4,13 +4,13 @@ import { withApiGuard, ApiGuardPresets } from "@/lib/api-guard";
 import { handleApiError, isGatewayUnavailableError } from "@/lib/errors";
 
 function toTimestamp(value: string | undefined): number {
-  if (!value) return 0;
+  if (!value) {return 0;}
   const parsed = Date.parse(value);
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 function toLabel(key: string): string {
-  if (!key) return "Untitled Session";
+  if (!key) {return "Untitled Session";}
   const compact = key.replace(/^agent:[^:]+:/, "");
   return compact.length > 42 ? `${compact.slice(0, 39)}...` : compact;
 }
@@ -23,7 +23,7 @@ export const GET = withApiGuard(async () => {
     const sessions = await client.listSessions();
     const normalized = sessions
       .filter((session) => !!session.key)
-      .sort(
+      .toSorted(
         (a, b) => toTimestamp(b.lastActivity) - toTimestamp(a.lastActivity)
       )
       .slice(0, 50)

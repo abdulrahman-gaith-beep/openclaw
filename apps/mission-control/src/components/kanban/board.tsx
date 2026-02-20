@@ -95,7 +95,7 @@ export function KanbanBoard({
   const attemptMoveTask = async (task: Task, nextStatus: ColumnId) => {
     const guard = canMoveTask(task, nextStatus);
     if (!guard.ok) {
-      if (guard.reason) setTransientMoveFeedback(guard.reason);
+      if (guard.reason) {setTransientMoveFeedback(guard.reason);}
       return false;
     }
 
@@ -118,7 +118,7 @@ export function KanbanBoard({
   };
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     const relatedTarget = e.relatedTarget as Node | null;
-    if (relatedTarget && e.currentTarget.contains(relatedTarget)) return;
+    if (relatedTarget && e.currentTarget.contains(relatedTarget)) {return;}
     setDragOverColumn(null);
   };
   const handleDrop = async (e: React.DragEvent, columnId: ColumnId) => {

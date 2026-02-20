@@ -78,7 +78,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function toMs(value: string | null | undefined): number | null {
-  if (!value) return null;
+  if (!value) {return null;}
   const ms = new Date(value).getTime();
   return Number.isNaN(ms) ? null : ms;
 }
@@ -139,8 +139,8 @@ function buildTrend(
     olderRating !== null &&
     olderRating - recentRating >= 0.3;
 
-  if (cycleImproved || ratingImproved) return "improving";
-  if (cycleRegressed || ratingRegressed) return "needs_attention";
+  if (cycleImproved || ratingImproved) {return "improving";}
+  if (cycleRegressed || ratingRegressed) {return "needs_attention";}
   return "steady";
 }
 
@@ -149,12 +149,12 @@ function averageCycleMinutes(tasks: Task[]): number | null {
     .map((task) => {
       const created = toMs(task.created_at);
       const updated = toMs(task.updated_at);
-      if (created === null || updated === null) return null;
-      if (updated <= created) return null;
+      if (created === null || updated === null) {return null;}
+      if (updated <= created) {return null;}
       return (updated - created) / (1000 * 60);
     })
     .filter((value): value is number => value !== null);
-  if (values.length === 0) return null;
+  if (values.length === 0) {return null;}
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
@@ -241,7 +241,7 @@ function computeLexicalScore(
   let phraseScore = 0;
   const lowerText = tokens.join(" ");
   for (const phrase of [...agent.capabilities, ...agent.suggestedTasks]) {
-    if (phrase.length < 6) continue;
+    if (phrase.length < 6) {continue;}
     const normalized = phrase.toLowerCase();
     if (lowerText.includes(normalized.slice(0, Math.min(18, normalized.length)))) {
       phraseScore += 1.5;
@@ -264,8 +264,8 @@ function buildReworkTaskIdsByAgent(
   }).filter((entry) => entry.agent_id && entry.task_id);
 
   for (const entry of reworkEvents) {
-    if (!entry.agent_id || !entry.task_id) continue;
-    if (allowedTaskIds && !allowedTaskIds.has(entry.task_id)) continue;
+    if (!entry.agent_id || !entry.task_id) {continue;}
+    if (allowedTaskIds && !allowedTaskIds.has(entry.task_id)) {continue;}
     if (!byAgent.has(entry.agent_id)) {
       byAgent.set(entry.agent_id, new Set<string>());
     }
@@ -283,7 +283,7 @@ function createBuildContext(workspaceId?: string): IntelligenceBuildContext {
 
   const tasksByAgent = new Map<string, Task[]>();
   for (const task of taskRows) {
-    if (!task.assigned_agent_id) continue;
+    if (!task.assigned_agent_id) {continue;}
     if (!tasksByAgent.has(task.assigned_agent_id)) {
       tasksByAgent.set(task.assigned_agent_id, []);
     }
@@ -472,7 +472,7 @@ export function rankSpecialistsForTask(
   });
 
   return scored
-    .sort((a, b) => b.score - a.score)
+    .toSorted((a, b) => b.score - a.score)
     .slice(0, opts?.limit ?? 3);
 }
 
@@ -481,7 +481,7 @@ export function buildSpecialistExecutionContext(
   workspaceId?: string
 ): string {
   const specialist = getSpecializedAgents().find((agent) => agent.id === agentId);
-  if (!specialist) return "";
+  if (!specialist) {return "";}
 
   const snapshot = workspaceId
     ? buildSpecialistIntelligence(specialist, createBuildContext(workspaceId))

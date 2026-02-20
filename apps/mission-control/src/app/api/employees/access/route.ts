@@ -38,7 +38,7 @@ export const GET = withApiGuard(async (request: NextRequest) => {
 
     const employees = listEmployees({ workspace_id: query.workspace_id });
     const exists = employees.some((e) => e.id === query.employee_id);
-    if (!exists) throw new UserError("Employee not found", 404);
+    if (!exists) {throw new UserError("Employee not found", 404);}
 
     const accounts = listAccounts({ workspace_id: query.workspace_id });
 

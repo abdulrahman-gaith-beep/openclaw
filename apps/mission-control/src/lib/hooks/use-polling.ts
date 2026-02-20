@@ -183,7 +183,7 @@ export function usePolling({
 
   const handleGatewayEvent = useCallback(
     (event: GatewayEvent) => {
-      if (event.type !== "gateway_event") return;
+      if (event.type !== "gateway_event") {return;}
       queueSync(classifyGatewayEvent(event));
     },
     [queueSync]
@@ -244,7 +244,7 @@ export function useCommentPolling(
   }, [onRefresh]);
 
   const refresh = useCallback(async () => {
-    if (refreshInFlightRef.current) return;
+    if (refreshInFlightRef.current) {return;}
     refreshInFlightRef.current = true;
     try {
       await fetchComments();
@@ -257,7 +257,7 @@ export function useCommentPolling(
 
   const scheduleRefresh = useCallback(
     (baseDelayMs = 220) => {
-      if (refreshTimerRef.current) return;
+      if (refreshTimerRef.current) {return;}
       const elapsed = Date.now() - lastRefreshAtRef.current;
       const minGapMs = 1500;
       const waitMs = elapsed >= minGapMs ? baseDelayMs : minGapMs - elapsed;
@@ -277,8 +277,8 @@ export function useCommentPolling(
 
   const handleGatewayEvent = useCallback(
     (event: GatewayEvent) => {
-      if (!taskId) return;
-      if (event.type !== "gateway_event") return;
+      if (!taskId) {return;}
+      if (event.type !== "gateway_event") {return;}
       const name = (event.event || "").toLowerCase();
       const payload =
         event.payload && typeof event.payload === "object"
@@ -290,7 +290,7 @@ export function useCommentPolling(
           : typeof payload?.task_id === "string"
             ? payload.task_id
             : null;
-      if (eventTaskId && eventTaskId !== taskId) return;
+      if (eventTaskId && eventTaskId !== taskId) {return;}
       if (
         name.includes("task") ||
         name.includes("dispatch") ||

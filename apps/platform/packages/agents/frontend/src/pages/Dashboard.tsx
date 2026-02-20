@@ -172,12 +172,12 @@ export function Dashboard() {
   const runningAgents = agents.filter(a => a.is_running).length
   const pendingTasks = status?.pending_tasks || 0
   const completedToday = tasks.filter((task) => {
-    if (task.status !== 'completed' || !task.completed_at) return false
+    if (task.status !== 'completed' || !task.completed_at) {return false}
     const completedAt = new Date(task.completed_at)
     return completedAt >= startToday
   }).length
   const completedYesterday = tasks.filter((task) => {
-    if (task.status !== 'completed' || !task.completed_at) return false
+    if (task.status !== 'completed' || !task.completed_at) {return false}
     const completedAt = new Date(task.completed_at)
     return completedAt >= startYesterday && completedAt < startToday
   }).length
@@ -192,9 +192,9 @@ export function Dashboard() {
           label: 'vs yesterday' as const,
         }
   const alertsLast24h = activity.filter((item: any) => {
-    if (!item?.timestamp || !item?.level) return false
+    if (!item?.timestamp || !item?.level) {return false}
     const level = String(item.level).toUpperCase()
-    if (level !== 'ERROR' && level !== 'WARNING') return false
+    if (level !== 'ERROR' && level !== 'WARNING') {return false}
     const timestamp = new Date(item.timestamp)
     return timestamp.getTime() >= now.getTime() - 24 * 60 * 60 * 1000
   }).length

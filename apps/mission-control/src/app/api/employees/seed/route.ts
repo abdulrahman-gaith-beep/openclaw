@@ -25,8 +25,8 @@ export const POST = withApiGuard(async (request: NextRequest) => {
     };
 
     const workspaceId = String(payload.workspace_id || "").trim();
-    if (!workspaceId) throw new UserError("workspace_id is required", 400);
-    if (!isValidWorkspaceId(workspaceId)) throw new UserError("workspace_id is invalid", 400);
+    if (!workspaceId) {throw new UserError("workspace_id is required", 400);}
+    if (!isValidWorkspaceId(workspaceId)) {throw new UserError("workspace_id is invalid", 400);}
 
     // Ensure at least one Staff Manager exists
     const ensure = (params: {
@@ -45,8 +45,8 @@ export const POST = withApiGuard(async (request: NextRequest) => {
       if (existing) {
         // keep seed as non-destructive: only fill manager/sort_order if missing
         const patch: { manager_id?: string; sort_order?: number } = {};
-        if (existing.manager_id == null && manager?.id) patch.manager_id = manager.id;
-        if (Number(existing.sort_order ?? 0) === 0 && params.sort_order !== 0) patch.sort_order = params.sort_order;
+        if (existing.manager_id == null && manager?.id) {patch.manager_id = manager.id;}
+        if (Number(existing.sort_order ?? 0) === 0 && params.sort_order !== 0) {patch.sort_order = params.sort_order;}
         if (Object.keys(patch).length > 0) {
           updateEmployee(existing.id, patch);
         }
@@ -237,7 +237,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
       }>
     ) => {
       const existing = listEmployeeSchedules({ employee_id: employeeId, workspace_id: workspaceId });
-      if (existing.length > 0) return; // already seeded
+      if (existing.length > 0) {return;} // already seeded
 
       const tz = "Asia/Riyadh";
       for (const s of schedules) {

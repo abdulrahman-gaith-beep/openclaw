@@ -251,7 +251,7 @@ const EMPLOYEE_BLUEPRINTS: EmployeeBlueprint[] = [
 
 function cronToHuman(cron: string): string {
   const parts = cron.trim().split(/\s+/);
-  if (parts.length < 5) return cron;
+  if (parts.length < 5) {return cron;}
   const [min, hour, dom, , dow] = parts;
 
   if (dom !== "*" && dow === "*") {
@@ -386,8 +386,8 @@ function OrgTreeNode(props: {
   } = props;
 
   const employee = byId.get(employeeId);
-  if (!employee) return null;
-  if (visibleIds && !visibleIds.has(employeeId)) return null;
+  if (!employee) {return null;}
+  if (visibleIds && !visibleIds.has(employeeId)) {return null;}
 
   const isCycle = path.includes(employeeId);
   const counts = taskCountsForEmployee(tasks, employeeId);
@@ -545,12 +545,12 @@ export function EmployeesView(props: {
   }, []);
 
   const taskSuggestedSpecialist = useMemo(() => {
-    if (taskSuggestionDismissed) return null;
+    if (taskSuggestionDismissed) {return null;}
     return suggestAgentForTask(`${taskForm.title} ${taskForm.description}`);
   }, [taskForm.title, taskForm.description, taskSuggestionDismissed]);
 
   useEffect(() => {
-    if (!createTaskOpen || taskTemplates.length > 0 || taskTemplatesLoading) return;
+    if (!createTaskOpen || taskTemplates.length > 0 || taskTemplatesLoading) {return;}
     let cancelled = false;
 
     async function loadTemplates() {
@@ -604,10 +604,10 @@ export function EmployeesView(props: {
           );
         });
     return [...matching]
-      .sort((a, b) => {
+      .toSorted((a, b) => {
         const af = taskFavoriteTemplateSet.has(a.id) ? 1 : 0;
         const bf = taskFavoriteTemplateSet.has(b.id) ? 1 : 0;
-        if (af !== bf) return bf - af;
+        if (af !== bf) {return bf - af;}
         return b.rating - a.rating;
       })
       .slice(0, query ? 14 : 10);
@@ -679,7 +679,7 @@ export function EmployeesView(props: {
       const params = new URLSearchParams({ workspace_id: workspaceId });
       const res = await fetch(`/api/employees?${params.toString()}`);
       const data = (await res.json()) as EmployeesApiResponse;
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (!res.ok) {throw new Error(data.error || `HTTP ${res.status}`);}
       setEmployees(data.employees || []);
       setAccessSummary(data.accessSummary || {});
     } catch (e) {
@@ -700,7 +700,7 @@ export function EmployeesView(props: {
         `/api/employees/hierarchy?${new URLSearchParams({ workspace_id: workspaceId }).toString()}`
       );
       const data = (await res.json()) as EmployeeHierarchyResponse & { error?: string };
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (!res.ok) {throw new Error(data.error || `HTTP ${res.status}`);}
       setHierarchyRoots(data.roots || []);
       setHierarchyChildren(data.children || {});
     } catch (e) {
@@ -714,12 +714,12 @@ export function EmployeesView(props: {
   }, [workspaceId]);
 
   useEffect(() => {
-    if (viewMode !== "org") return;
+    if (viewMode !== "org") {return;}
     void refreshHierarchy();
   }, [viewMode, refreshHierarchy]);
 
   const refreshAccountsAndAccess = useCallback(async () => {
-    if (!selected) return;
+    if (!selected) {return;}
     setAccountsLoading(true);
     try {
       const [accRes, accessRes] = await Promise.all([
@@ -736,8 +736,8 @@ export function EmployeesView(props: {
         access?: EmployeeAccessRecord[];
         error?: string;
       };
-      if (!accRes.ok) throw new Error(accData.error || `Accounts HTTP ${accRes.status}`);
-      if (!accessRes.ok) throw new Error(accessData.error || `Access HTTP ${accessRes.status}`);
+      if (!accRes.ok) {throw new Error(accData.error || `Accounts HTTP ${accRes.status}`);}
+      if (!accessRes.ok) {throw new Error(accessData.error || `Access HTTP ${accessRes.status}`);}
       setAccounts(
         (accData.accounts || []).map((a) => ({
           id: a.id,
@@ -765,12 +765,12 @@ export function EmployeesView(props: {
   }, [selected, workspaceId]);
 
   useEffect(() => {
-    if (!manageAccountsOpen) return;
+    if (!manageAccountsOpen) {return;}
     void refreshAccountsAndAccess();
   }, [manageAccountsOpen, refreshAccountsAndAccess]);
 
   const refreshSchedules = useCallback(async () => {
-    if (!selected) return;
+    if (!selected) {return;}
     setSchedulesLoading(true);
     try {
       const params = new URLSearchParams({
@@ -779,7 +779,7 @@ export function EmployeesView(props: {
       });
       const res = await fetch(`/api/employees/schedules?${params.toString()}`);
       const data = (await res.json()) as { schedules?: EmployeeSchedule[]; error?: string };
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (!res.ok) {throw new Error(data.error || `HTTP ${res.status}`);}
       setSchedules(data.schedules || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load schedules");
@@ -789,7 +789,7 @@ export function EmployeesView(props: {
   }, [selected, workspaceId]);
 
   useEffect(() => {
-    if (!selected) return;
+    if (!selected) {return;}
     void refreshSchedules();
   }, [selected, refreshSchedules]);
 
@@ -799,14 +799,14 @@ export function EmployeesView(props: {
       .filter((e) => e.workspace_id === workspaceId)
       .filter((e) => (departmentFilter === "all" ? true : e.department === departmentFilter))
       .filter((e) => {
-        if (!q) return true;
+        if (!q) {return true;}
         return (
           e.name.toLowerCase().includes(q) ||
           e.role_key.toLowerCase().includes(q) ||
           e.description.toLowerCase().includes(q)
         );
       })
-      .sort((a, b) => a.department.localeCompare(b.department) || a.name.localeCompare(b.name));
+      .toSorted((a, b) => a.department.localeCompare(b.department) || a.name.localeCompare(b.name));
   }, [employees, query, departmentFilter, workspaceId]);
 
   const hierarchyById = useMemo(() => {
@@ -823,7 +823,7 @@ export function EmployeesView(props: {
     const normalizedQuery = query.trim().toLowerCase();
     const hasQuery = normalizedQuery.length > 0;
     const hasDepartmentFilter = departmentFilter !== "all";
-    if (!hasQuery && !hasDepartmentFilter) return null;
+    if (!hasQuery && !hasDepartmentFilter) {return null;}
 
     const visible = new Set<string>();
 
@@ -845,7 +845,7 @@ export function EmployeesView(props: {
       let current = hierarchyById.get(id);
       while (current?.manager_id) {
         const manager = hierarchyById.get(current.manager_id);
-        if (!manager || visible.has(manager.id)) break;
+        if (!manager || visible.has(manager.id)) {break;}
         visible.add(manager.id);
         current = manager;
       }
@@ -855,11 +855,11 @@ export function EmployeesView(props: {
     const stack = [...seedIds];
     while (stack.length > 0) {
       const currentId = stack.pop()!;
-      if (visited.has(currentId)) continue;
+      if (visited.has(currentId)) {continue;}
       visited.add(currentId);
       const children = hierarchyChildren[currentId] || [];
       for (const childId of children) {
-        if (!hierarchyById.has(childId)) continue;
+        if (!hierarchyById.has(childId)) {continue;}
         if (!visible.has(childId)) {
           visible.add(childId);
         }
@@ -876,7 +876,7 @@ export function EmployeesView(props: {
     const bySort = (a: string, b: string) => {
       const ea = hierarchyById.get(a);
       const eb = hierarchyById.get(b);
-      if (!ea || !eb) return a.localeCompare(b);
+      if (!ea || !eb) {return a.localeCompare(b);}
       return (ea.sort_order ?? 0) - (eb.sort_order ?? 0) || ea.name.localeCompare(eb.name);
     };
 
@@ -885,25 +885,25 @@ export function EmployeesView(props: {
     );
 
     if (roots.length > 0) {
-      return [...roots].sort(bySort);
+      return [...roots].toSorted(bySort);
     }
 
-    if (!orgVisibleIds) return [];
+    if (!orgVisibleIds) {return [];}
 
     const fallbackRoots: string[] = [];
     for (const id of orgVisibleIds) {
       const employee = hierarchyById.get(id);
-      if (!employee) continue;
+      if (!employee) {continue;}
       const managerId = employee.manager_id;
       if (!managerId || !orgVisibleIds.has(managerId)) {
         fallbackRoots.push(id);
       }
     }
-    return fallbackRoots.sort(bySort);
+    return fallbackRoots.toSorted(bySort);
   }, [hierarchyById, hierarchyRoots, orgVisibleIds]);
 
   const selectedDirectReports = useMemo(() => {
-    if (!selected) return [] as Employee[];
+    if (!selected) {return [] as Employee[];}
     return employees
       .filter(
         (employee) =>
@@ -911,11 +911,11 @@ export function EmployeesView(props: {
           employee.manager_id === selected.id &&
           employee.status === "active"
       )
-      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+      .toSorted((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
   }, [employees, selected, workspaceId]);
 
   const selectedSecondLevelCount = useMemo(() => {
-    if (!selected) return 0;
+    if (!selected) {return 0;}
     return employees.filter((employee) => {
       if (employee.workspace_id !== workspaceId || employee.status !== "active" || !employee.manager_id) {
         return false;
@@ -927,7 +927,7 @@ export function EmployeesView(props: {
   const workspaceEmployeesByRoleKey = useMemo(() => {
     const map = new Map<string, Employee>();
     for (const employee of employees) {
-      if (employee.workspace_id !== workspaceId) continue;
+      if (employee.workspace_id !== workspaceId) {continue;}
       map.set(employee.role_key, employee);
     }
     return map;
@@ -936,7 +936,7 @@ export function EmployeesView(props: {
   const totals = useMemo(() => {
     const activeCount = employees.filter((e) => e.workspace_id === workspaceId && e.status === "active").length;
     const workingCount = employees.filter((e) => {
-      if (e.workspace_id !== workspaceId) return false;
+      if (e.workspace_id !== workspaceId) {return false;}
       const c = taskCountsForEmployee(tasks, e.id);
       return e.status === "active" && (c.inProgress > 0 || c.review > 0);
     }).length;
@@ -967,9 +967,9 @@ export function EmployeesView(props: {
       .trim()
       .toLowerCase()
       .replace(/\s+/g, "_")
-      .replace(/[^a-z0-9_\-]/g, "");
+      .replace(/[^a-z0-9_-]/g, "");
 
-    if (!name) return;
+    if (!name) {return;}
 
     setCreating(true);
     setError(null);
@@ -988,7 +988,7 @@ export function EmployeesView(props: {
         }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string; employee?: Employee };
-      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (!res.ok || !data.ok) {throw new Error(data.error || `HTTP ${res.status}`);}
       setCreateOpen(false);
       setForm({ name: "", role_key: "", department: "operations", description: "", manager_id: "" });
       setNotice(`Created employee: ${data.employee?.name || name}`);
@@ -1066,7 +1066,7 @@ export function EmployeesView(props: {
   }, [refresh, refreshHierarchy, viewMode, workspaceId]);
 
   const handleDelegateObjective = useCallback(async () => {
-    if (!selected) return;
+    if (!selected) {return;}
     const objectiveTitle = delegationForm.title.trim();
     const objectiveDescription = delegationForm.description.trim();
     if (!objectiveTitle) {
@@ -1149,7 +1149,7 @@ export function EmployeesView(props: {
               employee.manager_id === lead.id &&
               employee.status === "active"
           )
-          .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+          .toSorted((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
 
         for (const member of teamMembers) {
           const memberTaskDescription = buildDelegationTaskDescription({
@@ -1209,8 +1209,8 @@ export function EmployeesView(props: {
       priority: string;
       assignedAgentId?: string;
     }) => {
-      if (!selected) return false;
-      if (!payload.title.trim()) return false;
+      if (!selected) {return false;}
+      if (!payload.title.trim()) {return false;}
 
       setTaskCreating(true);
       setError(null);
@@ -1767,7 +1767,7 @@ export function EmployeesView(props: {
                   <div className="p-2 space-y-2">
                     {tasks
                       .filter((t) => t.employee_id === selected.id)
-                      .sort((a, b) => {
+                      .toSorted((a, b) => {
                         const aTs = new Date(a.updated_at || a.created_at).getTime();
                         const bTs = new Date(b.updated_at || b.created_at).getTime();
                         return bTs - aTs;
@@ -1810,7 +1810,7 @@ export function EmployeesView(props: {
                                 defaultValue={t.assigned_agent_id ?? ""}
                                 onChange={(e) => {
                                   const agentId = e.target.value;
-                                  if (!agentId) return;
+                                  if (!agentId) {return;}
                                   onDispatchTask(t.id, agentId);
                                 }}
                               >
@@ -2436,7 +2436,7 @@ export function EmployeesView(props: {
                               className="h-8 rounded-md border border-border bg-background px-2 text-xs outline-none focus:border-primary"
                               defaultValue={row.mode}
                               onChange={async (e) => {
-                                if (!selected) return;
+                                if (!selected) {return;}
                                 const mode = e.target.value as "read" | "draft" | "execute";
                                 try {
                                   const res = await fetch("/api/employees/access", {
@@ -2538,7 +2538,7 @@ export function EmployeesView(props: {
                     className="w-full"
                     disabled={!selected || !newAccount.service.trim() || !newAccount.label.trim()}
                     onClick={async () => {
-                      if (!selected) return;
+                      if (!selected) {return;}
                       try {
                         // 1) Create account
                         const accRes = await fetch("/api/accounts", {
@@ -2600,7 +2600,7 @@ export function EmployeesView(props: {
                           size="sm"
                           variant="outline"
                           onClick={async () => {
-                            if (!selected) return;
+                            if (!selected) {return;}
                             try {
                               const res = await fetch("/api/employees/access", {
                                 method: "POST",

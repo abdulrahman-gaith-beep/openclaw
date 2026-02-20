@@ -55,7 +55,7 @@ export function TasksPage() {
   const tasks = data?.tasks || []
   const agents = agentsData?.agents || []
   const filteredTasks = useMemo(() => {
-    if (!searchTerm) return tasks
+    if (!searchTerm) {return tasks}
     return tasks.filter(
       (task) =>
         task.name.toLowerCase().includes(searchTerm) ||
@@ -64,7 +64,7 @@ export function TasksPage() {
   }, [tasks, searchTerm])
 
   useEffect(() => {
-    if (!showNewTask) return
+    if (!showNewTask) {return}
 
     const previousActive = document.activeElement as HTMLElement | null
     taskNameInputRef.current?.focus()
@@ -75,7 +75,7 @@ export function TasksPage() {
         return
       }
 
-      if (event.key !== 'Tab' || !modalRef.current) return
+      if (event.key !== 'Tab' || !modalRef.current) {return}
 
       const focusable = Array.from(
         modalRef.current.querySelectorAll<HTMLElement>(
@@ -83,7 +83,7 @@ export function TasksPage() {
         )
       ).filter((element) => !element.hasAttribute('disabled'))
 
-      if (focusable.length === 0) return
+      if (focusable.length === 0) {return}
 
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
@@ -212,7 +212,7 @@ export function TasksPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault()
-                if (!newTaskAgent || !newTaskName || !newTaskType) return
+                if (!newTaskAgent || !newTaskName || !newTaskType) {return}
                 createTaskMutation.mutate({
                   agent_slug: newTaskAgent,
                   name: newTaskName,

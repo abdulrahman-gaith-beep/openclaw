@@ -54,7 +54,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
         .trim()
         .toLowerCase()
         .replace(/\s+/g, "_")
-        .replace(/[^a-z0-9_\-]/g, "")
+        .replace(/[^a-z0-9_-]/g, "")
     );
 
     const employee = createEmployee({
@@ -94,7 +94,7 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
       workspace_id: payload.workspace_id,
     });
 
-    if (!updated) throw new UserError("Employee not found", 404);
+    if (!updated) {throw new UserError("Employee not found", 404);}
 
     return NextResponse.json({ ok: true, employee: updated });
   } catch (error) {

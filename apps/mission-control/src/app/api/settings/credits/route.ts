@@ -28,7 +28,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
     try {
         const body = await request.json();
         const provider = body?.provider?.trim();
-        if (!provider) throw new UserError("provider is required", 400);
+        if (!provider) {throw new UserError("provider is required", 400);}
 
         const credit = upsertCredit({
             id: uuidv4(),

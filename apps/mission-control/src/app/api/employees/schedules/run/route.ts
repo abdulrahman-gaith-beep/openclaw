@@ -18,7 +18,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
     }
 
     const schedule = getEmployeeScheduleWithWorkspace(payload.id, payload.workspace_id);
-    if (!schedule) throw new UserError("Schedule not found", 404);
+    if (!schedule) {throw new UserError("Schedule not found", 404);}
 
     const newTask = createTask({
       id: uuidv4(),

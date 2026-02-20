@@ -43,7 +43,7 @@ function resolveZipPath(dirPath, names) {
   const allFiles = readDirSafe(dirPath);
   const fallback = allFiles.find((file) => {
     const lower = file.toLowerCase();
-    if (!lower.endsWith(".zip")) return false;
+    if (!lower.endsWith(".zip")) {return false;}
     return names.some((name) => {
       const prefix = name.replace(/\.zip$/i, "").toLowerCase();
       return lower.includes(prefix);
@@ -78,7 +78,7 @@ function toSlug(value) {
 }
 
 function capitalize(word) {
-  if (!word) return word;
+  if (!word) {return word;}
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
@@ -105,7 +105,7 @@ function markdownToSimpleHtml(markdown) {
   let listBuffer = [];
 
   function flushList() {
-    if (listBuffer.length === 0) return;
+    if (listBuffer.length === 0) {return;}
     chunks.push(`<ul>${listBuffer.map((item) => `<li>${item}</li>`).join("")}</ul>`);
     listBuffer = [];
   }
@@ -158,24 +158,24 @@ function stripMarkdown(value) {
 
 function inferCategory(text) {
   const lower = text.toLowerCase();
-  if (/agent|orchestr|swarm|multi-agent/.test(lower)) return "agents";
-  if (/deploy|host|infrastructure|cloud|server/.test(lower)) return "deployment";
-  if (/security|threat|auth|token|privacy/.test(lower)) return "security";
-  if (/research|analysis|insight|report/.test(lower)) return "research";
-  if (/workflow|automation|pipeline|schedule|ops/.test(lower)) return "workflow";
-  if (/content|marketing|social|youtube/.test(lower)) return "content";
+  if (/agent|orchestr|swarm|multi-agent/.test(lower)) {return "agents";}
+  if (/deploy|host|infrastructure|cloud|server/.test(lower)) {return "deployment";}
+  if (/security|threat|auth|token|privacy/.test(lower)) {return "security";}
+  if (/research|analysis|insight|report/.test(lower)) {return "research";}
+  if (/workflow|automation|pipeline|schedule|ops/.test(lower)) {return "workflow";}
+  if (/content|marketing|social|youtube/.test(lower)) {return "content";}
   return "productivity";
 }
 
 function scoreUsecase(text, filename) {
   const lower = text.toLowerCase();
   let score = 78;
-  if (/multi-agent|orchestr|pipeline/.test(lower)) score += 8;
-  if (/api|integration|automation|workflow/.test(lower)) score += 5;
-  if (/security|reliability|monitoring/.test(lower)) score += 4;
-  if (/dashboard|analytics|insight/.test(lower)) score += 3;
-  if (/template|checklist|step-by-step/.test(lower)) score += 2;
-  if (filename.includes("daily") || filename.includes("morning")) score += 1;
+  if (/multi-agent|orchestr|pipeline/.test(lower)) {score += 8;}
+  if (/api|integration|automation|workflow/.test(lower)) {score += 5;}
+  if (/security|reliability|monitoring/.test(lower)) {score += 4;}
+  if (/dashboard|analytics|insight/.test(lower)) {score += 3;}
+  if (/template|checklist|step-by-step/.test(lower)) {score += 2;}
+  if (filename.includes("daily") || filename.includes("morning")) {score += 1;}
   return Math.max(65, Math.min(97, score));
 }
 
@@ -190,10 +190,10 @@ function extractFirstDescription(markdown) {
   const lines = body.split("\n");
   for (const rawLine of lines) {
     const line = rawLine.trim();
-    if (!line) continue;
-    if (line.startsWith("#")) continue;
-    if (line.startsWith("---")) continue;
-    if (line.startsWith("```")) continue;
+    if (!line) {continue;}
+    if (line.startsWith("#")) {continue;}
+    if (line.startsWith("---")) {continue;}
+    if (line.startsWith("```")) {continue;}
     return stripMarkdown(line).slice(0, 260);
   }
   return "";
@@ -235,7 +235,7 @@ function parseFrontMatter(markdown) {
   const fmLines = lines.slice(1, endIndex);
   for (const line of fmLines) {
     const match = line.match(/^([A-Za-z0-9_-]+)\s*:\s*(.+)$/);
-    if (!match) continue;
+    if (!match) {continue;}
     frontMatter[match[1].toLowerCase()] = match[2].trim().replace(/^["']|["']$/g, "");
   }
 
@@ -247,7 +247,7 @@ function parseFrontMatter(markdown) {
 
 function mapMarkdownEntryToUsecase({ zipPath, entry, source, sourceDetailPrefix, urlBase }) {
   const markdown = readMarkdownEntry(zipPath, entry);
-  if (!markdown.trim()) return null;
+  if (!markdown.trim()) {return null;}
 
   const base = path.basename(entry);
   const slug = toSlug(base.replace(/\.md$/i, ""));
@@ -297,7 +297,7 @@ function buildUsecaseCatalog(usecasesZipPath, openclawMainZipPath) {
         sourceDetailPrefix: "community/usecases",
         urlBase: "https://github.com/openclaw/awesome-openclaw-usecases/blob/main/",
       });
-      if (parsed) usecases.push(parsed);
+      if (parsed) {usecases.push(parsed);}
     }
   }
 
@@ -322,7 +322,7 @@ function buildUsecaseCatalog(usecasesZipPath, openclawMainZipPath) {
     }
   }
 
-  const sortedUsecases = usecases.sort((a, b) => b.rating - a.rating);
+  const sortedUsecases = usecases.toSorted((a, b) => b.rating - a.rating);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -335,7 +335,7 @@ function buildUsecaseCatalog(usecasesZipPath, openclawMainZipPath) {
 }
 
 function collectSkillDocs(zipPath, entryPattern, sourceName, sourceUrlBase, categoryFromPath) {
-  if (!zipPath) return [];
+  if (!zipPath) {return [];}
   const entries = listZipEntries(zipPath).filter((entry) => entryPattern.test(entry));
   return entries.map((entry) => {
     const markdown = readMarkdownEntry(zipPath, entry);
@@ -359,21 +359,21 @@ function collectSkillDocs(zipPath, entryPattern, sourceName, sourceUrlBase, cate
 }
 
 function attachSkillAssets(skills, zipPath, sourcePrefix) {
-  if (!zipPath || skills.length === 0) return skills;
+  if (!zipPath || skills.length === 0) {return skills;}
   const entries = listZipEntries(zipPath);
 
   const bySkill = new Map(skills.map((skill) => [skill.sourcePath, skill]));
   for (const entry of entries) {
-    if (entry.endsWith("/")) continue;
+    if (entry.endsWith("/")) {continue;}
     const owner = skills.find((skill) => entry.startsWith(path.dirname(skill.sourcePath) + "/"));
-    if (!owner) continue;
-    if (/\/scripts\/[^/]+$/i.test(entry)) owner.scriptsCount += 1;
-    if (/\/references\/[^/]+$/i.test(entry)) owner.referencesCount += 1;
+    if (!owner) {continue;}
+    if (/\/scripts\/[^/]+$/i.test(entry)) {owner.scriptsCount += 1;}
+    if (/\/references\/[^/]+$/i.test(entry)) {owner.referencesCount += 1;}
   }
 
   return skills.map((skill) => {
     const next = bySkill.get(skill.sourcePath);
-    if (!next) return skill;
+    if (!next) {return skill;}
     return {
       ...next,
       source: sourcePrefix,
@@ -409,7 +409,7 @@ function buildSkillCatalog(skillsZipPath, openclawMainZipPath) {
   const skillItems = [
     ...attachSkillAssets(communitySkills, skillsZipPath, "openclaw-skills-pack"),
     ...officialWorkflowSkills,
-  ].sort((a, b) => a.name.localeCompare(b.name));
+  ].toSorted((a, b) => a.name.localeCompare(b.name));
 
   return {
     generatedAt: new Date().toISOString(),

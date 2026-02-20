@@ -73,7 +73,7 @@ function useGatewayHealth() {
         const raw = await res.text();
         const data = ct.includes("application/json") ? JSON.parse(raw) : null;
 
-        if (cancelled) return;
+        if (cancelled) {return;}
         const ok = Boolean(res.ok && data && data.ok === true);
         setState(ok ? "connected" : "offline");
         setHint(
@@ -84,7 +84,7 @@ function useGatewayHealth() {
               : `Health probe failed (HTTP ${res.status})`
         );
       } catch (e) {
-        if (cancelled) return;
+        if (cancelled) {return;}
         setState("offline");
         setHint(String(e));
       }
@@ -125,7 +125,7 @@ function useEcosystemStats(): EcoStats {
   const fetchStats = useCallback(async () => {
     try {
       const res = await fetch("/api/openclaw/skills");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {throw new Error(`HTTP ${res.status}`);}
       const json = (await res.json()) as { skills?: unknown[]; degraded?: boolean };
 
       if (json.degraded) {
@@ -141,9 +141,9 @@ function useEcosystemStats(): EcoStats {
       for (const s of skills) {
         if (typeof s === "object" && s !== null) {
           const skill = s as Record<string, unknown>;
-          if (skill.source) sources.add(String(skill.source));
+          if (skill.source) {sources.add(String(skill.source));}
           const src = String(skill.source || "").toLowerCase();
-          if (src.includes("mcp")) mcpCount++;
+          if (src.includes("mcp")) {mcpCount++;}
         }
       }
 
@@ -444,7 +444,7 @@ export function AllToolsView(props: { onNavigate: (viewId: ViewId) => void }) {
   const allSections = useMemo(() => buildSections(stats), [stats]);
 
   const sections = useMemo(() => {
-    if (!needle) return allSections;
+    if (!needle) {return allSections;}
     return allSections
       .map((s) => ({
         ...s,
@@ -459,12 +459,12 @@ export function AllToolsView(props: { onNavigate: (viewId: ViewId) => void }) {
   // Keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (!gridRef.current) return;
+      if (!gridRef.current) {return;}
       const buttons = Array.from(
         gridRef.current.querySelectorAll<HTMLButtonElement>("[data-tool-card]")
       );
       const idx = buttons.findIndex((b) => b === document.activeElement);
-      if (idx === -1) return;
+      if (idx === -1) {return;}
 
       let next = idx;
       if (e.key === "ArrowRight" || e.key === "ArrowDown") {

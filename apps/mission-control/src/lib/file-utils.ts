@@ -274,25 +274,25 @@ export function getLanguageFromFile(filename: string): string {
  * Get icon name for file type (lucide-react icon names)
  */
 export function getFileIcon(category: FileCategory, filename?: string): string {
-  if (category === 'image') return 'Image';
-  if (category === 'video') return 'Film';
-  if (category === 'archive') return 'Archive';
-  if (category === 'pdf') return 'FileText';
+  if (category === 'image') {return 'Image';}
+  if (category === 'video') {return 'Film';}
+  if (category === 'archive') {return 'Archive';}
+  if (category === 'pdf') {return 'FileText';}
   if (category === 'code') {
     if (filename) {
       const ext = filename.toLowerCase().split('.').pop() || '';
-      if (['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs'].includes(ext)) return 'Braces';
-      if (['py', 'pyw'].includes(ext)) return 'Code2';
-      if (['html', 'htm', 'xml'].includes(ext)) return 'FileCode';
-      if (['css', 'scss', 'sass', 'less'].includes(ext)) return 'Palette';
-      if (['json', 'yaml', 'yml'].includes(ext)) return 'FileJson';
-      if (['md', 'mdx'].includes(ext)) return 'FileText';
-      if (['sh', 'bash', 'zsh'].includes(ext)) return 'Terminal';
-      if (['sql'].includes(ext)) return 'Database';
+      if (['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs'].includes(ext)) {return 'Braces';}
+      if (['py', 'pyw'].includes(ext)) {return 'Code2';}
+      if (['html', 'htm', 'xml'].includes(ext)) {return 'FileCode';}
+      if (['css', 'scss', 'sass', 'less'].includes(ext)) {return 'Palette';}
+      if (['json', 'yaml', 'yml'].includes(ext)) {return 'FileJson';}
+      if (['md', 'mdx'].includes(ext)) {return 'FileText';}
+      if (['sh', 'bash', 'zsh'].includes(ext)) {return 'Terminal';}
+      if (['sql'].includes(ext)) {return 'Database';}
     }
     return 'FileCode2';
   }
-  if (category === 'text') return 'FileText';
+  if (category === 'text') {return 'FileText';}
   return 'File';
 }
 
@@ -300,7 +300,7 @@ export function getFileIcon(category: FileCategory, filename?: string): string {
  * Format file size for display
  */
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) {return '0 B';}
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -469,13 +469,13 @@ export function createImageThumbnail(file: File, maxSize: number): Promise<strin
  */
 export function getFilesFromClipboard(e: ClipboardEvent): File[] {
   const items = e.clipboardData?.items;
-  if (!items) return [];
+  if (!items) {return [];}
 
   const files: File[] = [];
   for (const item of items) {
     if (item.kind === 'file') {
       const file = item.getAsFile();
-      if (file) files.push(file);
+      if (file) {files.push(file);}
     }
   }
   return files;
@@ -486,7 +486,7 @@ export function getFilesFromClipboard(e: ClipboardEvent): File[] {
  */
 export function getFilesFromDrag(e: DragEvent): File[] {
   const items = e.dataTransfer?.files;
-  if (!items) return [];
+  if (!items) {return [];}
   return Array.from(items);
 }
 

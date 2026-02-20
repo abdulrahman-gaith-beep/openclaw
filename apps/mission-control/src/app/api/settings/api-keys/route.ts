@@ -172,7 +172,7 @@ async function testProviderConnection(
  * Mask an API key, showing only the last 4 characters.
  */
 function maskApiKey(encrypted: string): string {
-  if (encrypted.length <= 4) return "****";
+  if (encrypted.length <= 4) {return "****";}
   return "****" + encrypted.slice(-4);
 }
 
@@ -200,9 +200,9 @@ export const POST = withApiGuard(async (request: NextRequest) => {
     const apiKeyValue = body?.api_key;
     const baseUrl = body?.base_url?.trim() || null;
 
-    if (!provider) throw new UserError("provider is required", 400);
-    if (!label) throw new UserError("label is required", 400);
-    if (!apiKeyValue) throw new UserError("api_key is required", 400);
+    if (!provider) {throw new UserError("provider is required", 400);}
+    if (!label) {throw new UserError("label is required", 400);}
+    if (!apiKeyValue) {throw new UserError("api_key is required", 400);}
 
     const key = createApiKey({
       id: uuidv4(),
@@ -235,10 +235,10 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
   try {
     const body = await request.json();
     const id = body?.id;
-    if (!id) throw new UserError("id is required", 400);
+    if (!id) {throw new UserError("id is required", 400);}
 
     const existing = getApiKey(id);
-    if (!existing) throw new UserError("API key not found", 404);
+    if (!existing) {throw new UserError("API key not found", 404);}
 
     // If test=true, run a connection test
     if (body.test === true) {
@@ -267,13 +267,13 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
 
     // Build patch from allowed fields
     const patch: Record<string, unknown> = {};
-    if (body.label !== undefined) patch.label = body.label.trim();
-    if (body.api_key !== undefined) patch.api_key_encrypted = body.api_key;
-    if (body.base_url !== undefined) patch.base_url = body.base_url?.trim() || null;
-    if (body.is_active !== undefined) patch.is_active = body.is_active ? 1 : 0;
+    if (body.label !== undefined) {patch.label = body.label.trim();}
+    if (body.api_key !== undefined) {patch.api_key_encrypted = body.api_key;}
+    if (body.base_url !== undefined) {patch.base_url = body.base_url?.trim() || null;}
+    if (body.is_active !== undefined) {patch.is_active = body.is_active ? 1 : 0;}
 
     const updated = updateApiKey(id, patch as Parameters<typeof updateApiKey>[1]);
-    if (!updated) throw new UserError("API key not found", 404);
+    if (!updated) {throw new UserError("API key not found", 404);}
 
     // If the API key value changed, sync to gateway
     if (body.api_key !== undefined) {
@@ -297,10 +297,10 @@ export const DELETE = withApiGuard(async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
-    if (!id) throw new UserError("id query param is required", 400);
+    if (!id) {throw new UserError("id query param is required", 400);}
 
     const existing = getApiKey(id);
-    if (!existing) throw new UserError("API key not found", 404);
+    if (!existing) {throw new UserError("API key not found", 404);}
 
     deleteApiKey(id);
 

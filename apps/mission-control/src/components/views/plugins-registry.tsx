@@ -138,7 +138,7 @@ function groupByCategory(
 ): Record<string, PluginEntry[]> {
   const groups: Record<string, PluginEntry[]> = {};
   for (const p of plugins) {
-    if (!groups[p.category]) groups[p.category] = [];
+    if (!groups[p.category]) {groups[p.category] = [];}
     groups[p.category].push(p);
   }
   return groups;
@@ -717,7 +717,7 @@ export function PluginsRegistry() {
     setError(null);
     try {
       const res = await fetch("/api/plugins");
-      if (!res.ok) throw new Error(`Failed to fetch plugins (${res.status})`);
+      if (!res.ok) {throw new Error(`Failed to fetch plugins (${res.status})`);}
       const json = (await res.json()) as PluginCatalog;
       setCatalog(json);
     } catch (err) {
@@ -734,7 +734,7 @@ export function PluginsRegistry() {
     setRescanning(true);
     try {
       const res = await fetch("/api/plugins", { method: "POST" });
-      if (!res.ok) throw new Error(`Rescan failed (${res.status})`);
+      if (!res.ok) {throw new Error(`Rescan failed (${res.status})`);}
       const json = (await res.json()) as PluginCatalog;
       setCatalog(json);
     } catch {
@@ -751,7 +751,7 @@ export function PluginsRegistry() {
   }, [fetchPlugins]);
 
   const filteredPlugins = useMemo(() => {
-    if (!catalog) return [];
+    if (!catalog) {return [];}
     return catalog.plugins.filter((plugin) => {
       if (search) {
         const q = search.toLowerCase();
@@ -759,11 +759,11 @@ export function PluginsRegistry() {
           plugin.name.toLowerCase().includes(q) ||
           plugin.description.toLowerCase().includes(q) ||
           (plugin.author?.toLowerCase().includes(q) ?? false);
-        if (!matches) return false;
+        if (!matches) {return false;}
       }
       if (categoryFilter !== "all" && plugin.category !== categoryFilter)
-        return false;
-      if (scopeFilter !== "all" && plugin.scope !== scopeFilter) return false;
+        {return false;}
+      if (scopeFilter !== "all" && plugin.scope !== scopeFilter) {return false;}
       return true;
     });
   }, [catalog, search, categoryFilter, scopeFilter]);
@@ -779,8 +779,8 @@ export function PluginsRegistry() {
   const toggleExpand = useCallback((pluginId: string) => {
     setExpandedPlugins((prev) => {
       const next = new Set(prev);
-      if (next.has(pluginId)) next.delete(pluginId);
-      else next.add(pluginId);
+      if (next.has(pluginId)) {next.delete(pluginId);}
+      else {next.add(pluginId);}
       return next;
     });
   }, []);

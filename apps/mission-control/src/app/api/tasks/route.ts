@@ -52,14 +52,14 @@ function ensureSystemFeedbackForCompletedTask(params: {
 }): void {
   const { taskId, taskTitle, specialistId, previousStatus } = params;
   const specialist = getSpecializedAgent(specialistId);
-  if (!specialist) return;
+  if (!specialist) {return;}
 
   const existingFeedback = listSpecialistFeedback({
     specialist_id: specialistId,
     task_id: taskId,
     limit: 1,
   });
-  if (existingFeedback.length > 0) return;
+  if (existingFeedback.length > 0) {return;}
 
   const hasRework = hasActivityForTask("task_rework", taskId, specialistId);
   const rating = hasRework ? 3 : 4;
@@ -178,7 +178,7 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
     }
 
     const existing = getTaskWithWorkspace(id, workspace_id);
-    if (!existing) throw new UserError("Task not found", 404);
+    if (!existing) {throw new UserError("Task not found", 404);}
 
     const normalizedPatch: Record<string, unknown> = { ...patch };
 
@@ -189,8 +189,8 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
     if (patch.description != null) {
       normalizedPatch.description = sanitizeInput(String(patch.description));
     }
-    if (patch.tags !== undefined) normalizedPatch.tags = JSON.stringify(patch.tags ?? []);
-    if (patch.employee_id !== undefined) normalizedPatch.employee_id = patch.employee_id;
+    if (patch.tags !== undefined) {normalizedPatch.tags = JSON.stringify(patch.tags ?? []);}
+    if (patch.employee_id !== undefined) {normalizedPatch.employee_id = patch.employee_id;}
     if (patch.due_date !== undefined) {
       normalizedPatch.due_date = patch.due_date ? String(patch.due_date).slice(0, 10) : null;
     }
@@ -281,7 +281,7 @@ export const DELETE = withApiGuard(async (request: NextRequest) => {
     }
 
     const existing = getTaskWithWorkspace(id, workspace_id);
-    if (!existing) throw new UserError("Task not found", 404);
+    if (!existing) {throw new UserError("Task not found", 404);}
 
     deleteTask(id);
 

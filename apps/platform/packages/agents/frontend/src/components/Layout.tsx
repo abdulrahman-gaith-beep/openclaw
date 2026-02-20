@@ -67,7 +67,7 @@ export function Layout() {
   })
 
   const searchResults = useMemo(() => {
-    if (normalizedSearch.length < 2) return []
+    if (normalizedSearch.length < 2) {return []}
 
     const agentMatches = (searchAgentsData?.agents || [])
       .filter((agent) =>
@@ -105,7 +105,7 @@ export function Layout() {
 
   const submitSearch = (query: string) => {
     const term = query.trim()
-    if (!term) return
+    if (!term) {return}
 
     if (searchResults.length > 0) {
       navigate(searchResults[0].path)

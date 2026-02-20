@@ -94,7 +94,7 @@ export function AiApiCommandCenter() {
     }, [fetchData]);
 
     const handleTestAll = async () => {
-        if (!data?.stats.totalKeys) return;
+        if (!data?.stats.totalKeys) {return;}
         setTestingAll(true);
         addToast("info", "Starting connectivity test for all providers...");
 
@@ -120,8 +120,8 @@ export function AiApiCommandCenter() {
                 );
 
                 results.forEach(res => {
-                    if (res.ok && res.testResult?.ok) successCount++;
-                    else failCount++;
+                    if (res.ok && res.testResult?.ok) {successCount++;}
+                    else {failCount++;}
                 });
             }
 
@@ -277,7 +277,7 @@ export function AiApiCommandCenter() {
         );
     };
 
-    if (loading) return <SettingsSkeleton lines={5} />;
+    if (loading) {return <SettingsSkeleton lines={5} />;}
 
     return (
         <div className="space-y-6">

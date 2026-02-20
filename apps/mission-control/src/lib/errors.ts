@@ -19,7 +19,7 @@ export interface ApiErrorOptions {
 
 export function ensureRequestId(candidate?: string | null): string {
   const value = candidate?.trim();
-  if (value) return value;
+  if (value) {return value;}
   return randomUUID();
 }
 
@@ -159,8 +159,8 @@ export function isGatewayUnsupportedMethodError(
   method?: string
 ): boolean {
   const message = toErrorText(error);
-  if (!message.includes("unknown method")) return false;
-  if (!method) return true;
+  if (!message.includes("unknown method")) {return false;}
+  if (!method) {return true;}
   return message.includes(method.toLowerCase());
 }
 

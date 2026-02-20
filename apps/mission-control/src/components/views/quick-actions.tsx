@@ -121,13 +121,13 @@ const MODEL_OPTIONS = [
 
 function timeAgo(dateStr: string): string {
   const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return "unknown";
+  if (isNaN(date.getTime())) {return "unknown";}
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return "just now";
+  if (seconds < 60) {return "just now";}
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) {return `${minutes}m ago`;}
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) {return `${hours}h ago`;}
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
 }
@@ -167,10 +167,10 @@ export function QuickActions({
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
+    if (typeof window === "undefined") {return null;}
     try {
       const stored = localStorage.getItem("mission-control-model-preference");
-      if (!stored) return null;
+      if (!stored) {return null;}
       const parsed = JSON.parse(stored) as { model?: unknown };
       return typeof parsed.model === "string" ? parsed.model : null;
     } catch {
@@ -337,7 +337,7 @@ export function QuickActions({
   // --- Filter commands by search ---
 
   const filteredCommands = useMemo(() => {
-    if (!search.trim()) return commands;
+    if (!search.trim()) {return commands;}
     const lower = search.toLowerCase();
     return commands.filter(
       (cmd) =>
@@ -451,7 +451,7 @@ export function QuickActions({
   // --- Quick task creation ---
 
   const handleQuickCreateTask = useCallback(async () => {
-    if (!quickTaskTitle.trim() || creatingTask) return;
+    if (!quickTaskTitle.trim() || creatingTask) {return;}
     setCreatingTask(true);
     try {
       await fetch("/api/tasks", {
@@ -487,7 +487,7 @@ export function QuickActions({
         return;
       }
 
-      if (!open) return;
+      if (!open) {return;}
 
       // Tab navigation
       if (e.key === "Tab") {
@@ -729,7 +729,7 @@ export function QuickActions({
                     {/* Group by category */}
                     {(["navigation", "action"] as const).map((category) => {
                       const categoryCommands = filteredCommands.filter(c => c.category === category);
-                      if (categoryCommands.length === 0) return null;
+                      if (categoryCommands.length === 0) {return null;}
                       return (
                         <div key={category} className="mb-2">
                           <div className="px-2 py-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">

@@ -66,7 +66,7 @@ export function TaskDetailModal({
   }, [comments.length]);
 
   const addUserComment = async () => {
-    if (!newComment.trim() || sendingComment) return;
+    if (!newComment.trim() || sendingComment) {return;}
     setSendingComment(true);
     try {
       await fetch("/api/tasks/comments", {
@@ -82,7 +82,7 @@ export function TaskDetailModal({
   };
 
   const requestRework = async () => {
-    if (!reworkFeedback.trim() || reworking) return;
+    if (!reworkFeedback.trim() || reworking) {return;}
     setReworking(true);
     try {
       await fetch("/api/tasks/rework", {
@@ -100,7 +100,7 @@ export function TaskDetailModal({
   };
 
   const submitSpecialistFeedback = useCallback(async (): Promise<boolean> => {
-    if (!task.assigned_agent_id) return true;
+    if (!task.assigned_agent_id) {return true;}
     try {
       const res = await fetch("/api/agents/specialists/feedback", {
         method: "POST",
@@ -120,7 +120,7 @@ export function TaskDetailModal({
   }, [feedbackNote, feedbackRating, task.assigned_agent_id, task.id]);
 
   const approveAndDone = async () => {
-    if (approvingDone) return;
+    if (approvingDone) {return;}
     setApprovingDone(true);
     setFeedbackError(null);
     const feedbackSaved = await submitSpecialistFeedback();

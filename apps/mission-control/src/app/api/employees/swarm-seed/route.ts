@@ -321,13 +321,13 @@ export const POST = withApiGuard(async (request: NextRequest) => {
     const payload = (await request.json().catch(() => ({}))) as { workspace_id?: string };
     const workspaceId = String(payload.workspace_id || "").trim();
 
-    if (!workspaceId) throw new UserError("workspace_id is required", 400);
-    if (!isValidWorkspaceId(workspaceId)) throw new UserError("workspace_id is invalid", 400);
+    if (!workspaceId) {throw new UserError("workspace_id is required", 400);}
+    if (!isValidWorkspaceId(workspaceId)) {throw new UserError("workspace_id is invalid", 400);}
 
     let createdEmployees = 0;
     for (const definition of SWARM_EMPLOYEES) {
       const ensured = ensureEmployee(workspaceId, definition);
-      if (ensured.created) createdEmployees += 1;
+      if (ensured.created) {createdEmployees += 1;}
     }
 
     let createdSchedules = 0;
@@ -336,7 +336,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
         workspace_id: workspaceId,
         role_key: schedule.employee_role_key,
       });
-      if (!employee) continue;
+      if (!employee) {continue;}
 
       const existing = listEmployeeSchedules({
         workspace_id: workspaceId,

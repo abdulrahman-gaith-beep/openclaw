@@ -17,7 +17,7 @@ export function TeamTemplatesSection({
   onSpawnTeam, 
   isSpawning 
 }: TeamTemplatesSectionProps) {
-  if (teams.length === 0) return null;
+  if (teams.length === 0) {return null;}
 
   return (
     <section className="mb-10 px-1" aria-labelledby="team-templates-title">

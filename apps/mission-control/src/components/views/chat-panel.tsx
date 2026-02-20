@@ -190,7 +190,7 @@ function cleanText(text: string): string {
 }
 
 function extractText(content: unknown): string {
-  if (typeof content === "string") return cleanText(content);
+  if (typeof content === "string") {return cleanText(content);}
   if (Array.isArray(content)) {
     const parts: string[] = [];
     for (const block of content) {
@@ -202,7 +202,7 @@ function extractText(content: unknown): string {
           parts.push(record.text);
         } else if (record.content) {
           const inner = extractText(record.content);
-          if (inner) parts.push(inner);
+          if (inner) {parts.push(inner);}
         }
       }
     }
@@ -210,15 +210,15 @@ function extractText(content: unknown): string {
   }
   if (content && typeof content === "object") {
     const obj = content as Record<string, unknown>;
-    if (typeof obj.text === "string") return cleanText(obj.text);
-    if (obj.content) return extractText(obj.content);
+    if (typeof obj.text === "string") {return cleanText(obj.text);}
+    if (obj.content) {return extractText(obj.content);}
   }
   return cleanText(String(content ?? ""));
 }
 
 function normalizeErrorMessage(raw: unknown): string {
   const text = String(raw ?? "").trim();
-  if (!text) return "Agent failed to respond.";
+  if (!text) {return "Agent failed to respond.";}
 
   const objectStart = text.indexOf("{");
   if (objectStart >= 0) {
@@ -235,7 +235,7 @@ function normalizeErrorMessage(raw: unknown): string {
       } else if (typeof parsed.message === "string") {
         message = parsed.message;
       }
-      if (message) return message;
+      if (message) {return message;}
     } catch {
       // Ignore parse errors and continue with keyword mapping.
     }
@@ -253,9 +253,9 @@ function normalizeErrorMessage(raw: unknown): string {
 }
 
 function formatMessageTime(value: string | number | undefined): string | null {
-  if (!value) return null;
+  if (!value) {return null;}
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
+  if (Number.isNaN(date.getTime())) {return null;}
   return date.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
@@ -263,19 +263,19 @@ function formatMessageTime(value: string | number | undefined): string | null {
 }
 
 function formatRelativeTime(value: string | null | undefined): string {
-  if (!value) return "No activity";
+  if (!value) {return "No activity";}
   const ts = new Date(value).getTime();
-  if (Number.isNaN(ts)) return "No activity";
+  if (Number.isNaN(ts)) {return "No activity";}
 
   const diffMs = Date.now() - ts;
   const diffMin = Math.floor(diffMs / (1000 * 60));
   const diffHour = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHour / 24);
 
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHour < 24) return `${diffHour}h ago`;
-  if (diffDay < 7) return `${diffDay}d ago`;
+  if (diffMin < 1) {return "Just now";}
+  if (diffMin < 60) {return `${diffMin}m ago`;}
+  if (diffHour < 24) {return `${diffHour}h ago`;}
+  if (diffDay < 7) {return `${diffDay}d ago`;}
 
   return new Date(value).toLocaleDateString(undefined, {
     month: "short",
@@ -284,13 +284,13 @@ function formatRelativeTime(value: string | null | undefined): string {
 }
 
 function formatRelativeFromTimestamp(value: number | null | undefined): string {
-  if (!value) return "Unknown";
+  if (!value) {return "Unknown";}
   const iso = new Date(value).toISOString();
   return formatRelativeTime(iso);
 }
 
 function truncateText(text: string, max = 140): string {
-  if (text.length <= max) return text;
+  if (text.length <= max) {return text;}
   return `${text.slice(0, Math.max(0, max - 1))}…`;
 }
 
@@ -305,7 +305,7 @@ function compactSessionLabel(key: string): string {
   const label = key.startsWith(SESSION_PREFIX)
     ? key.slice(SESSION_PREFIX.length)
     : key;
-  if (!label) return "Session";
+  if (!label) {return "Session";}
 
   // Clean up raw key labels like "mission-control:chat-1739812345678"
   const chatMatch = label.match(/^mission-control:chat(?:-(\d+))?$/);
@@ -330,14 +330,14 @@ function compactSessionLabel(key: string): string {
 
 function generateSessionTitle(message: string): string {
   const cleaned = message.replace(/\n/g, " ").trim();
-  if (cleaned.length <= 60) return cleaned;
+  if (cleaned.length <= 60) {return cleaned;}
   const truncated = cleaned.slice(0, 60);
   const lastSpace = truncated.lastIndexOf(" ");
   return lastSpace > 30 ? `${truncated.slice(0, lastSpace)}...` : `${truncated}...`;
 }
 
 function formatElapsedTime(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 60) {return `${seconds}s`;}
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}m ${secs}s`;
@@ -345,7 +345,7 @@ function formatElapsedTime(seconds: number): string {
 
 function toModelRef(model: ModelOption): string {
   const modelId = (model.modelRef || model.id || "").trim();
-  if (!modelId) return "";
+  if (!modelId) {return "";}
   return modelId;
 }
 
@@ -356,21 +356,21 @@ function toModelLabel(model: ModelOption): string {
     return `${model.label}${suffix}`;
   }
   const modelId = (model.id || "").trim();
-  if (!modelId) return "";
-  if (!model.provider) return modelId;
+  if (!modelId) {return "";}
+  if (!model.provider) {return modelId;}
   return modelId.startsWith(`${model.provider}/`)
     ? modelId
     : `${model.provider}/${modelId}`;
 }
 
 function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024) {return `${bytes} B`;}
+  if (bytes < 1024 * 1024) {return `${(bytes / 1024).toFixed(1)} KB`;}
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function buildAttachmentContext(attachments: UploadedAttachment[]): string {
-  if (attachments.length === 0) return "";
+  if (attachments.length === 0) {return "";}
 
   const lines: string[] = [
     "",
@@ -396,7 +396,7 @@ function buildAttachmentContext(attachments: UploadedAttachment[]): string {
 }
 
 function formatCouncilSummary(results: CouncilResult[]): string {
-  if (results.length === 0) return "Council mode ran, but no model responses were returned.";
+  if (results.length === 0) {return "Council mode ran, but no model responses were returned.";}
 
   const lines: string[] = ["Council results:"];
   for (const result of results) {
@@ -445,9 +445,9 @@ export function ChatPanel() {
   const [activeModel, setActiveModel] = useState<string | null>(null);
   const [sessionBusyKey, setSessionBusyKey] = useState<string | null>(null);
   const [sessionKey, setSessionKey] = useState(() => {
-    if (typeof window === "undefined") return DEFAULT_SESSION_KEY;
+    if (typeof window === "undefined") {return DEFAULT_SESSION_KEY;}
     const fromUrl = new URLSearchParams(window.location.search).get("chatSession");
-    if (!fromUrl) return DEFAULT_SESSION_KEY;
+    if (!fromUrl) {return DEFAULT_SESSION_KEY;}
     try {
       return decodeURIComponent(fromUrl);
     } catch {
@@ -480,7 +480,7 @@ export function ChatPanel() {
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const el = scrollContainerRef.current;
-    if (!el) return;
+    if (!el) {return;}
     el.scrollTo({ top: el.scrollHeight, behavior });
     shouldAutoScrollRef.current = true;
     setIsAtBottom(true);
@@ -527,17 +527,17 @@ export function ChatPanel() {
         // Retroactively generate title for sessions that still have raw key labels
         setSessions((prev) => {
           const session = prev.find((s) => s.key === sessionKey);
-          if (!session) return prev;
+          if (!session) {return prev;}
           // If session already has a meaningful title (not a raw key pattern), skip
           const lbl = session.label || "";
           const isRawKey =
             !lbl || lbl.startsWith("mission-control:") || lbl.startsWith("agent:main:");
-          if (!isRawKey) return prev;
+          if (!isRawKey) {return prev;}
           // Find first user message to derive title
           const firstUser = nextMessages.find((m) => m.role === "user");
-          if (!firstUser) return prev;
+          if (!firstUser) {return prev;}
           const text = extractText(firstUser.content);
-          if (!text) return prev;
+          if (!text) {return prev;}
           const title = generateSessionTitle(text);
           // Persist to backend (fire-and-forget)
           void fetch("/api/chat/sessions", {
@@ -723,7 +723,7 @@ export function ChatPanel() {
 
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current;
-    if (!el) return;
+    if (!el) {return;}
     const nearBottom = isNearBottom(el);
     shouldAutoScrollRef.current = nearBottom;
     setIsAtBottom(nearBottom);
@@ -734,11 +734,11 @@ export function ChatPanel() {
 
   useEffect(() => {
     const rendered = renderedMessages.length + (streamingText ? 1 : 0);
-    if (rendered === lastRenderCountRef.current) return;
+    if (rendered === lastRenderCountRef.current) {return;}
     lastRenderCountRef.current = rendered;
 
     const el = scrollContainerRef.current;
-    if (!el) return;
+    if (!el) {return;}
 
     if (prependScrollAnchorRef.current) {
       const anchor = prependScrollAnchorRef.current;
@@ -778,7 +778,7 @@ export function ChatPanel() {
     const seen = new Set<string>();
 
     for (const session of sessions) {
-      if (!session.key || seen.has(session.key)) continue;
+      if (!session.key || seen.has(session.key)) {continue;}
       seen.add(session.key);
       unique.push(session);
     }
@@ -805,7 +805,7 @@ export function ChatPanel() {
     const uniqueByRef = new Map<string, ModelOption>();
     for (const model of sourceModels) {
       const ref = toModelRef(model);
-      if (!ref || uniqueByRef.has(ref)) continue;
+      if (!ref || uniqueByRef.has(ref)) {continue;}
       uniqueByRef.set(ref, { ...model, id: ref });
     }
 
@@ -817,19 +817,19 @@ export function ChatPanel() {
       coding: 3,
       budget: 4,
     };
-    return Array.from(uniqueByRef.values()).sort((a, b) => {
+    return Array.from(uniqueByRef.values()).toSorted((a, b) => {
       const aTier = tierOrder[a.tier ?? ""] ?? 99;
       const bTier = tierOrder[b.tier ?? ""] ?? 99;
-      if (aTier !== bTier) return aTier - bTier;
+      if (aTier !== bTier) {return aTier - bTier;}
       const aRank = a.tierRank ?? 999;
       const bRank = b.tierRank ?? 999;
-      if (aRank !== bRank) return aRank - bRank;
+      if (aRank !== bRank) {return aRank - bRank;}
       return (a.id || "").localeCompare(b.id || "");
     });
   }, [models]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {return;}
     const url = new URL(window.location.href);
     if (sessionKey === DEFAULT_SESSION_KEY) {
       url.searchParams.delete("chatSession");
@@ -856,11 +856,11 @@ export function ChatPanel() {
 
   const handleGatewayEvent = useCallback(
     (event: GatewayEvent) => {
-      if (event.type !== "gateway_event") return;
-      if (event.event !== "chat") return;
+      if (event.type !== "gateway_event") {return;}
+      if (event.event !== "chat") {return;}
 
       const payload = (event.payload || {}) as GatewayChatPayload;
-      if (!payload.sessionKey || payload.sessionKey !== sessionKey) return;
+      if (!payload.sessionKey || payload.sessionKey !== sessionKey) {return;}
 
       const state = payload.state;
       const runId = typeof payload.runId === "string" ? payload.runId : null;
@@ -868,10 +868,10 @@ export function ChatPanel() {
       if (state === "delta") {
         setSending(false);
         setAwaitingFinal(true);
-        if (runId) setStreamingRunId(runId);
+        if (runId) {setStreamingRunId(runId);}
 
         const next = extractText(payload.message);
-        if (!next) return;
+        if (!next) {return;}
         setStreamingText((prev) => (next.length >= prev.length ? next : prev));
         return;
       }
@@ -960,7 +960,7 @@ export function ChatPanel() {
   );
 
   const abortGeneration = useCallback(async () => {
-    if (!sending && !awaitingFinal && !streamingRunId) return;
+    if (!sending && !awaitingFinal && !streamingRunId) {return;}
 
     setSending(false);
     setAwaitingFinal(false);
@@ -983,7 +983,7 @@ export function ChatPanel() {
 
   const uploadAttachments = useCallback(
     async (attachments: FileAttachment[]): Promise<UploadedAttachment[]> => {
-      if (attachments.length === 0) return [];
+      if (attachments.length === 0) {return [];}
       const form = new FormData();
       for (const attachment of attachments) {
         form.append("files", attachment.file, attachment.name);
@@ -1010,7 +1010,7 @@ export function ChatPanel() {
   const runCouncil = useCallback(
     async (message: string): Promise<CouncilResult[]> => {
       const selectedModels = Array.from(new Set(councilModels.filter(Boolean))).slice(0, 4);
-      if (selectedModels.length < 2) return [];
+      if (selectedModels.length < 2) {return [];}
 
       const res = await fetch("/api/chat/council", {
         method: "POST",
@@ -1033,14 +1033,14 @@ export function ChatPanel() {
   const setCouncilModelAt = useCallback((index: number, value: string) => {
     setCouncilModels((prev) => {
       const next = [...prev];
-      while (next.length < 3) next.push("");
+      while (next.length < 3) {next.push("");}
       next[index] = value;
       return next;
     });
   }, []);
 
   const copySessionLink = useCallback(async () => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {return;}
     const url = new URL(window.location.href);
     if (sessionKey === DEFAULT_SESSION_KEY) {
       url.searchParams.delete("chatSession");
@@ -1060,7 +1060,7 @@ export function ChatPanel() {
     const text = input.trim();
     const attachments = attachmentsRef.current?.getAttachments() ?? [];
     const hasAttachments = attachments.length > 0;
-    if ((!text && !hasAttachments) || sending || awaitingFinal || uploadingAttachments) return;
+    if ((!text && !hasAttachments) || sending || awaitingFinal || uploadingAttachments) {return;}
 
     const attachmentSummary = hasAttachments
       ? `Attached files: ${attachments.map((file) => file.name).join(", ")}`
@@ -1154,7 +1154,7 @@ export function ChatPanel() {
         setCouncilRunning(true);
         void runCouncil(outboundMessage)
           .then((results) => {
-            if (results.length === 0) return;
+            if (results.length === 0) {return;}
             const councilMessage: ChatMessage = {
               role: "assistant",
               content: formatCouncilSummary(results),
@@ -1204,7 +1204,7 @@ export function ChatPanel() {
   };
 
   const selectSession = (key: string) => {
-    if (key === sessionKey || sessionBusyKey) return;
+    if (key === sessionKey || sessionBusyKey) {return;}
     resetWindowRef.current = true;
     shouldAutoScrollRef.current = true;
     lastRenderCountRef.current = 0;
@@ -1243,7 +1243,7 @@ export function ChatPanel() {
   };
 
   const deleteSession = async (key: string) => {
-    if (sessionBusyKey || key === DEFAULT_SESSION_KEY) return;
+    if (sessionBusyKey || key === DEFAULT_SESSION_KEY) {return;}
 
     try {
       setSessionBusyKey(key);
@@ -1352,11 +1352,11 @@ export function ChatPanel() {
       // Find the user message immediately before this assistant message
       const absIndex = visibleStartIndex + messageIndex;
       const allConversation = conversationMessages;
-      if (absIndex <= 0 || absIndex >= allConversation.length) return;
+      if (absIndex <= 0 || absIndex >= allConversation.length) {return;}
       const previousUserMsg = allConversation[absIndex - 1];
-      if (previousUserMsg?.role !== "user") return;
+      if (previousUserMsg?.role !== "user") {return;}
       const text = extractText(previousUserMsg.content);
-      if (!text) return;
+      if (!text) {return;}
       setInput(text);
       inputRef.current?.focus();
     },

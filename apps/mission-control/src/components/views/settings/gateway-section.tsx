@@ -29,11 +29,11 @@ interface GatewaySectionProps {
 }
 
 function formatUptime(ms: number): string {
-    if (ms <= 0) return "—";
+    if (ms <= 0) {return "—";}
     const seconds = Math.floor(ms / 1000);
-    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 60) {return `${seconds}s`;}
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+    if (minutes < 60) {return `${minutes}m ${seconds % 60}s`;}
     const hours = Math.floor(minutes / 60);
     return `${hours}h ${minutes % 60}m`;
 }
@@ -187,7 +187,7 @@ export function GatewaySection({ settings, onSettingsChange }: GatewaySectionPro
                         value={localUrl}
                         onChange={(e) => setLocalUrl(e.target.value)}
                         onBlur={() => updateField("gatewayUrl", localUrl)}
-                        onKeyDown={(e) => { if (e.key === "Enter") updateField("gatewayUrl", localUrl); }}
+                        onKeyDown={(e) => { if (e.key === "Enter") {updateField("gatewayUrl", localUrl);} }}
                         placeholder="ws://127.0.0.1:18789"
                         className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all text-sm font-mono"
                     />
@@ -202,7 +202,7 @@ export function GatewaySection({ settings, onSettingsChange }: GatewaySectionPro
                             value={localToken}
                             onChange={(e) => setLocalToken(e.target.value)}
                             onBlur={() => updateField("gatewayToken", localToken)}
-                            onKeyDown={(e) => { if (e.key === "Enter") updateField("gatewayToken", localToken); }}
+                            onKeyDown={(e) => { if (e.key === "Enter") {updateField("gatewayToken", localToken);} }}
                             placeholder="Enter auth token..."
                             className="w-full px-4 py-2.5 pr-12 rounded-lg border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all text-sm font-mono"
                         />

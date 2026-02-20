@@ -76,45 +76,45 @@ interface ChatAnalyticsData {
 // --- Helpers ---
 
 function formatTokens(n: number | undefined | null): string {
-  if (!n) return "0";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  if (!n) {return "0";}
+  if (n >= 1_000_000) {return `${(n / 1_000_000).toFixed(1)}M`;}
+  if (n >= 1_000) {return `${(n / 1_000).toFixed(1)}K`;}
   return String(n);
 }
 
 function formatCost(n: number | undefined | null): string {
-  if (!n) return "$0.00";
+  if (!n) {return "$0.00";}
   return `$${n.toFixed(2)}`;
 }
 
 function formatTimestamp(ts?: string): string {
-  if (!ts) return "N/A";
+  if (!ts) {return "N/A";}
   const date = new Date(ts);
-  if (Number.isNaN(date.getTime())) return "N/A";
+  if (Number.isNaN(date.getTime())) {return "N/A";}
   return date.toLocaleString();
 }
 
 function formatShortDate(dateStr: string): string {
   const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return dateStr;
+  if (Number.isNaN(d.getTime())) {return dateStr;}
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function formatCountdown(resetAt?: number | string): string {
-  if (!resetAt) return "";
+  if (!resetAt) {return "";}
   const ts = typeof resetAt === "number" ? resetAt : new Date(resetAt).getTime();
   const diff = ts - Date.now();
-  if (diff <= 0) return "now";
+  if (diff <= 0) {return "now";}
   const hours = Math.floor(diff / 3_600_000);
   const mins = Math.floor((diff % 3_600_000) / 60_000);
-  if (hours > 24) return `${Math.floor(hours / 24)}d`;
-  if (hours > 0) return `${hours}h ${mins}m`;
+  if (hours > 24) {return `${Math.floor(hours / 24)}d`;}
+  if (hours > 0) {return `${hours}h ${mins}m`;}
   return `${mins}m`;
 }
 
 function usageBarColor(pct: number): string {
-  if (pct > 80) return "bg-red-500";
-  if (pct > 60) return "bg-yellow-500";
+  if (pct > 80) {return "bg-red-500";}
+  if (pct > 60) {return "bg-yellow-500";}
   return "bg-emerald-500";
 }
 
@@ -133,7 +133,7 @@ function extractTotals(cost: Record<string, unknown>): Totals {
 
 function extractDaily(cost: Record<string, unknown>): DailyEntry[] {
   const raw = cost.daily;
-  if (!Array.isArray(raw)) return [];
+  if (!Array.isArray(raw)) {return [];}
   return raw.map((d: Record<string, unknown>) => ({
     date: String(d.date ?? ""),
     totalCost: (d.totalCost as number) || 0,
@@ -146,7 +146,7 @@ function extractDaily(cost: Record<string, unknown>): DailyEntry[] {
 
 function extractProviders(usage: Record<string, unknown>): ProviderEntry[] {
   const raw = usage.providers;
-  if (!Array.isArray(raw)) return [];
+  if (!Array.isArray(raw)) {return [];}
   return raw.map((p: Record<string, unknown>) => {
     const windows = Array.isArray(p.windows)
       ? (p.windows as Array<Record<string, unknown>>).map((w) => ({
@@ -170,33 +170,33 @@ function extractProviders(usage: Record<string, unknown>): ProviderEntry[] {
 function normalizeMessagesPerDay(
   raw: ChatAnalyticsData["messagesPerDay"]
 ): Array<{ day: string; count: number }> {
-  if (!Array.isArray(raw)) return [];
+  if (!Array.isArray(raw)) {return [];}
   return raw
     .map((row) => ({
       day: String(row.day ?? ""),
       count: Number(row.count ?? 0),
     }))
     .filter((row) => row.day.length > 0)
-    .sort((a, b) => a.day.localeCompare(b.day));
+    .toSorted((a, b) => a.day.localeCompare(b.day));
 }
 
 function normalizeMessagesByChannel(
   raw: ChatAnalyticsData["messagesByChannel"]
 ): Array<{ channel: string | null; count: number }> {
-  if (!Array.isArray(raw)) return [];
+  if (!Array.isArray(raw)) {return [];}
   return raw
     .map((row) => ({
       channel: row.channel ?? null,
       count: Number(row.count ?? 0),
     }))
     .filter((row) => row.count > 0)
-    .sort((a, b) => b.count - a.count);
+    .toSorted((a, b) => b.count - a.count);
 }
 
 function normalizeTokensByModel(
   raw: ChatAnalyticsData["tokensByModel"]
 ): Array<{ model: string | null; input: number; output: number; total: number }> {
-  if (!Array.isArray(raw)) return [];
+  if (!Array.isArray(raw)) {return [];}
   return raw
     .map((row) => ({
       model: row.model ?? null,
@@ -205,7 +205,7 @@ function normalizeTokensByModel(
       total: Number(row.total ?? 0),
     }))
     .filter((row) => row.total > 0)
-    .sort((a, b) => b.total - a.total);
+    .toSorted((a, b) => b.total - a.total);
 }
 
 // --- Sub-components ---
@@ -632,7 +632,7 @@ export function CostDashboard() {
   }, [fetchUsage, fetchChatAnalytics]);
 
   const scheduleRefresh = useCallback(() => {
-    if (refreshTimerRef.current) return;
+    if (refreshTimerRef.current) {return;}
     refreshTimerRef.current = setTimeout(() => {
       refreshTimerRef.current = null;
       fetchAll().catch(() => {
@@ -647,7 +647,7 @@ export function CostDashboard() {
 
   const handleGatewayEvent = useCallback(
     (event: GatewayEvent) => {
-      if (event.type !== "gateway_event") return;
+      if (event.type !== "gateway_event") {return;}
       const eventName = (event.event || "").toLowerCase();
       if (
         eventName.includes("usage.") ||

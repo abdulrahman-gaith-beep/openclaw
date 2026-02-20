@@ -35,7 +35,7 @@ const ALL_PROVIDERS = [
 ];
 
 function maskApiKey(encrypted: string): string {
-    if (encrypted.length <= 4) return "****";
+    if (encrypted.length <= 4) {return "****";}
     return "****" + encrypted.slice(-4);
 }
 
@@ -61,7 +61,7 @@ export const GET = withApiGuard(async () => {
 
         for (const key of keys) {
             const provider = key.provider;
-            if (!byProvider[provider]) byProvider[provider] = [];
+            if (!byProvider[provider]) {byProvider[provider] = [];}
             byProvider[provider].push({
                 id: key.id,
                 provider: key.provider,

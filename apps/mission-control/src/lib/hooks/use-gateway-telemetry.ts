@@ -42,7 +42,7 @@ export function useGatewayTelemetry(windowMs = 60_000): GatewayTelemetry {
 
   const handleGatewayEvent = useCallback(
     (event: GatewayEvent) => {
-      if (event.type !== "gateway_event") return;
+      if (event.type !== "gateway_event") {return;}
       timestampsRef.current.push(Date.now());
       setLastEventAt(event.ts || new Date().toISOString());
       pruneAndCompute();

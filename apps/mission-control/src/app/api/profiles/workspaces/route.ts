@@ -24,7 +24,7 @@ export const GET = withApiGuard(async (request: NextRequest) => {
     }
 
     const profile = getProfile(profileId);
-    if (!profile) throw new UserError("Profile not found", 404);
+    if (!profile) {throw new UserError("Profile not found", 404);}
 
     const workspaces = listProfileWorkspaces(profileId);
     return NextResponse.json({ workspaces });
@@ -41,10 +41,10 @@ export const POST = withApiGuard(async (request: NextRequest) => {
     );
 
     const profile = getProfile(payload.profile_id);
-    if (!profile) throw new UserError("Profile not found", 404);
+    if (!profile) {throw new UserError("Profile not found", 404);}
 
     const workspace = getWorkspace(payload.workspace_id);
-    if (!workspace) throw new UserError("Workspace not found", 404);
+    if (!workspace) {throw new UserError("Workspace not found", 404);}
 
     linkProfileWorkspace(
       payload.profile_id,
