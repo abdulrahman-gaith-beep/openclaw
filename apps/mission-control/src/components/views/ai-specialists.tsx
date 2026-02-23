@@ -38,7 +38,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  Sheet,
+  SheetContent,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -57,6 +60,8 @@ import {
 } from "@/lib/agent-registry";
 import { TeamTemplatesSection } from "./team-templates";
 import { timeAgo } from "@/lib/shared";
+import { getSpecialistFromHash } from "@/components/layout/sidebar";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 
 // --- Types ---
 
@@ -588,7 +593,7 @@ interface AgentCardProps {
   isFavorite: boolean;
   isComparing: boolean;
   showCheckbox: boolean;
-  onSelect: () => void;
+  onSelect: (triggerEl?: HTMLElement | null) => void;
   onAssignTask: () => void;
   onToggleFavorite: () => void;
   onToggleCompare: () => void;
@@ -612,11 +617,11 @@ function AgentCard({
       tabIndex={0}
       aria-pressed={isSelected}
       aria-label={`${agent.name} agent. ${agent.description}. Status: ${status.status}`}
-      onClick={onSelect}
+      onClick={(e) => onSelect(e.currentTarget)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onSelect();
+          onSelect(e.currentTarget);
         }
       }}
       className={`
@@ -743,7 +748,7 @@ interface AgentListRowProps {
   status: AgentStatus;
   isFavorite: boolean;
   isComparing: boolean;
-  onSelect: () => void;
+  onSelect: (triggerEl?: HTMLElement | null) => void;
   onAssignTask: () => void;
   onToggleFavorite: () => void;
   onToggleCompare: () => void;
@@ -763,11 +768,11 @@ function AgentListRow({
     <div
       role="button"
       tabIndex={0}
-      onClick={onSelect}
+      onClick={(e) => onSelect(e.currentTarget)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onSelect();
+          onSelect(e.currentTarget);
         }
       }}
       className="flex items-center gap-3 px-4 py-3 border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
@@ -916,12 +921,14 @@ interface AgentDetailPanelProps {
   recentTasks: RecentTask[];
   isFavorite: boolean;
   isComparing: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onStartChat: () => void;
   onAssignTask: () => void;
   onNavigateToTask?: (taskId: string) => void;
   onToggleFavorite: () => void;
   onToggleCompare: () => void;
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
 function AgentDetailPanel({
@@ -930,12 +937,14 @@ function AgentDetailPanel({
   recentTasks,
   isFavorite,
   isComparing,
-  onClose,
+  open,
+  onOpenChange,
   onStartChat,
   onAssignTask,
   onNavigateToTask,
   onToggleFavorite,
   onToggleCompare,
+  returnFocusRef,
 }: AgentDetailPanelProps) {
   const [promptExpanded, setPromptExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -951,21 +960,25 @@ function AgentDetailPanel({
     return agent.systemPrompt.slice(0, 150) + "...";
   }, [agent.systemPrompt]);
 
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 z-40 animate-in fade-in duration-200"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+  const handleCloseAutoFocus = useCallback(
+    (e: Event) => {
+      if (returnFocusRef?.current) {
+        e.preventDefault();
+        returnFocusRef.current.focus();
+      }
+    },
+    [returnFocusRef]
+  );
 
-      {/* Panel */}
-      <div
-        className="fixed inset-y-0 right-0 w-full max-w-lg bg-card border-l border-border shadow-2xl z-50 flex flex-col min-h-0 animate-in slide-in-from-right duration-300"
-        role="complementary"
-        aria-label={`${agent.name} details panel`}
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        showCloseButton={false}
+        onCloseAutoFocus={handleCloseAutoFocus}
+        className="inset-y-0 right-0 w-full max-w-lg p-0 gap-0 border-l bg-card min-h-0 flex flex-col"
+        aria-describedby={undefined}
       >
+        <DialogTitle className={cn("sr-only")}>{agent.name} details panel</DialogTitle>
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-border shrink-0">
           <div className="flex items-center gap-4">
@@ -1004,7 +1017,7 @@ function AgentDetailPanel({
             <Button
               variant="ghost"
               size="icon"
-              onClick={onClose}
+              onClick={() => onOpenChange(false)}
               aria-label="Close panel"
               className="hover:bg-destructive/10 hover:text-destructive"
             >
@@ -1306,8 +1319,8 @@ function AgentDetailPanel({
             </Button>
           </div>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -1587,8 +1600,10 @@ function SmartSuggestion({
         <span className="text-sm font-medium text-primary">Recommended Specialist</span>
       </div>
       <button
+        type="button"
         onClick={() => onSelectAgent(recommendation.agentId)}
         className="flex items-center gap-3 w-full p-2 rounded-lg bg-card/50 hover:bg-card transition-colors text-left"
+        aria-label={`Select recommended specialist: ${recommendation.name}`}
       >
         <div className={`w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center ${recommendation.color}`}>
           <AgentIcon iconName={recommendation.icon} className="w-4 h-4" />
@@ -1804,7 +1819,7 @@ function StatsRibbon({
       aria-label="Specialist statistics"
     >
       {cards.map((card) => (
-        <div key={card.label} className="glass-panel rounded-xl p-4">
+        <div key={card.label} className="glass-2 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
             {card.label}
           </div>
@@ -1942,7 +1957,7 @@ function ComparisonView({
 
   return (
     <div
-      className="glass-panel rounded-xl overflow-hidden"
+      className="glass-2 rounded-xl overflow-hidden"
       role="region"
       aria-label="Agent comparison"
     >
@@ -2299,6 +2314,7 @@ export function AISpecialists({
 }: AISpecialistsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAgent, setSelectedAgent] = useState<SpecializedAgent | null>(null);
+  const lastTriggerRef = React.useRef<HTMLElement | null>(null);
   const [quickAssignOpen, setQuickAssignOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [telegramDialogOpen, setTelegramDialogOpen] = useState(false);
@@ -2348,6 +2364,22 @@ export function AISpecialists({
     }
   });
   const [advisoryCollapsed, setAdvisoryCollapsed] = useState(false);
+
+  // Open specialist from hash deep link (#specialists?agent=frontend-dev)
+  useEffect(() => {
+    const applyAgentFromHash = () => {
+      const agentId = getSpecialistFromHash();
+      if (agentId) {
+        const agent = getSpecializedAgent(agentId);
+        if (agent) {
+          setSelectedAgent(agent);
+        }
+      }
+    };
+    applyAgentFromHash();
+    window.addEventListener("hashchange", applyAgentFromHash);
+    return () => window.removeEventListener("hashchange", applyAgentFromHash);
+  }, []);
 
   const allAgents = useMemo(() => getSpecializedAgents(), []);
   const {
@@ -2530,13 +2562,13 @@ export function AISpecialists({
     return getRecentTasksForAgent(tasks, selectedAgent.id);
   }, [selectedAgent, tasks]);
 
-  const handleAssignTask = (agentId: string) => {
+  const handleAssignTask = useCallback((agentId: string) => {
     const agent = getSpecializedAgent(agentId);
     if (agent) {
       setAssignTarget(agent);
       setAssignDialogOpen(true);
     }
-  };
+  }, []);
 
   const handleStartChat = (agentId: string) => {
     if (onStartChat) {
@@ -2592,6 +2624,9 @@ export function AISpecialists({
 
   return (
     <div className="h-full flex flex-col">
+      <div className="shrink-0 px-6 py-4 border-b border-border/50">
+        <PageDescriptionBanner pageId="specialists" />
+      </div>
       {/* Header */}
       <header className="p-6 border-b border-border bg-card/50 backdrop-blur-sm space-y-4">
         <div className="flex items-center justify-between">
@@ -2719,7 +2754,8 @@ export function AISpecialists({
                               <button
                                 key={suggestion.id}
                                 className="w-full text-left rounded-md border border-border p-2 hover:bg-muted/30 transition-colors"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  lastTriggerRef.current = e.currentTarget;
                                   if (specialist) {setSelectedAgent(specialist);}
                                 }}
                               >
@@ -2827,7 +2863,7 @@ export function AISpecialists({
                         status={getAgentStatus(agent.id)}
                         isFavorite={true}
                         isComparing={compareList.includes(agent.id)}
-                        onSelect={() => setSelectedAgent(agent)}
+                        onSelect={(el) => { lastTriggerRef.current = el ?? null; setSelectedAgent(agent); }}
                         onAssignTask={() => handleAssignTask(agent.id)}
                         onToggleFavorite={() => toggleFavorite(agent.id)}
                         onToggleCompare={() => toggleCompare(agent.id)}
@@ -2845,7 +2881,7 @@ export function AISpecialists({
                     status={getAgentStatus(agent.id)}
                     isFavorite={false}
                     isComparing={compareList.includes(agent.id)}
-                    onSelect={() => setSelectedAgent(agent)}
+                    onSelect={(el) => { lastTriggerRef.current = el ?? null; setSelectedAgent(agent); }}
                     onAssignTask={() => handleAssignTask(agent.id)}
                     onToggleFavorite={() => toggleFavorite(agent.id)}
                     onToggleCompare={() => toggleCompare(agent.id)}
@@ -2890,7 +2926,7 @@ export function AISpecialists({
                           isFavorite={true}
                           isComparing={compareList.includes(agent.id)}
                           showCheckbox={compareList.length > 0}
-                          onSelect={() => setSelectedAgent(agent)}
+                          onSelect={(el) => { lastTriggerRef.current = el ?? null; setSelectedAgent(agent); }}
                           onAssignTask={() => handleAssignTask(agent.id)}
                           onToggleFavorite={() => toggleFavorite(agent.id)}
                           onToggleCompare={() => toggleCompare(agent.id)}
@@ -2931,7 +2967,7 @@ export function AISpecialists({
                             isFavorite={favorites.has(agent.id)}
                             isComparing={compareList.includes(agent.id)}
                             showCheckbox={compareList.length > 0}
-                            onSelect={() => setSelectedAgent(agent)}
+                            onSelect={(el) => { lastTriggerRef.current = el ?? null; setSelectedAgent(agent); }}
                             onAssignTask={() => handleAssignTask(agent.id)}
                             onToggleFavorite={() => toggleFavorite(agent.id)}
                             onToggleCompare={() => toggleCompare(agent.id)}
@@ -2955,12 +2991,14 @@ export function AISpecialists({
           recentTasks={selectedAgentRecentTasks}
           isFavorite={favorites.has(selectedAgent.id)}
           isComparing={compareList.includes(selectedAgent.id)}
-          onClose={() => setSelectedAgent(null)}
+          open={!!selectedAgent}
+          onOpenChange={(open) => !open && setSelectedAgent(null)}
           onStartChat={() => handleStartChat(selectedAgent.id)}
           onAssignTask={() => handleAssignTask(selectedAgent.id)}
           onNavigateToTask={onNavigateToTask}
           onToggleFavorite={() => toggleFavorite(selectedAgent.id)}
           onToggleCompare={() => toggleCompare(selectedAgent.id)}
+          returnFocusRef={lastTriggerRef}
         />
       )}
 

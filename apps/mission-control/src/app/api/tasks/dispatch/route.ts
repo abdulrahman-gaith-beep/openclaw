@@ -16,6 +16,7 @@ import { sanitizeInput } from "@/lib/validation";
 import { retrySendMessageWithFallback } from "@/lib/model-fallback";
 import { dispatchTaskSchema, parseOrThrow } from "@/lib/schemas";
 import { buildSpecialistExecutionContext } from "@/lib/specialist-intelligence";
+import { EXECUTION_GUIDANCE } from "@/lib/learning-hub-lessons";
 
 // POST /api/tasks/dispatch - Send a task to an agent for processing
 export const POST = withApiGuard(async (request: NextRequest) => {
@@ -51,6 +52,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
         type: "task_rework",
         task_id: taskId,
         agent_id: agentId,
+        workspace_id: task.workspace_id,
         message: `User requested rework on "${task.title}"`,
       });
     }
@@ -67,6 +69,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
       type: isRework ? "task_rework_started" : "task_in_progress",
       task_id: taskId,
       agent_id: agentId,
+      workspace_id: task.workspace_id,
       message: isRework
         ? `Agent "${agentId}" re-processing "${task.title}" with feedback`
         : `Agent "${agentId}" started working on "${task.title}"`,
@@ -191,6 +194,10 @@ Package-manager fallback rules:
 Reliability guardrails:
 - Use ASCII hyphen-minus \`-\` for CLI flags (never unicode dashes).
 - If browser tools are required, verify browser control service is reachable before relying on it.
+
+## Learning Hub Guidance
+
+${EXECUTION_GUIDANCE}
 
 ---
 

@@ -20,6 +20,7 @@ import {
   type GatewayConnectionState,
   type GatewayEvent,
 } from "@/lib/hooks/use-gateway-events";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 
 // --- Types ---
 
@@ -30,6 +31,10 @@ interface UsageData {
   normalizedPeriod?: string;
   supportsHistoricalBreakdown?: boolean;
   fetchedAt?: string;
+  /** Gateway usage.status has no period params; always current. */
+  usagePeriodSupported?: boolean;
+  /** Gateway usage.cost supports days/startDate/endDate; period applies. */
+  costPeriodSupported?: boolean;
 }
 
 interface DailyEntry {
@@ -76,45 +81,45 @@ interface ChatAnalyticsData {
 // --- Helpers ---
 
 function formatTokens(n: number | undefined | null): string {
-  if (!n) {return "0";}
-  if (n >= 1_000_000) {return `${(n / 1_000_000).toFixed(1)}M`;}
-  if (n >= 1_000) {return `${(n / 1_000).toFixed(1)}K`;}
+  if (!n) { return "0"; }
+  if (n >= 1_000_000) { return `${(n / 1_000_000).toFixed(1)}M`; }
+  if (n >= 1_000) { return `${(n / 1_000).toFixed(1)}K`; }
   return String(n);
 }
 
 function formatCost(n: number | undefined | null): string {
-  if (!n) {return "$0.00";}
+  if (!n) { return "$0.00"; }
   return `$${n.toFixed(2)}`;
 }
 
 function formatTimestamp(ts?: string): string {
-  if (!ts) {return "N/A";}
+  if (!ts) { return "N/A"; }
   const date = new Date(ts);
-  if (Number.isNaN(date.getTime())) {return "N/A";}
+  if (Number.isNaN(date.getTime())) { return "N/A"; }
   return date.toLocaleString();
 }
 
 function formatShortDate(dateStr: string): string {
   const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) {return dateStr;}
+  if (Number.isNaN(d.getTime())) { return dateStr; }
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function formatCountdown(resetAt?: number | string): string {
-  if (!resetAt) {return "";}
+  if (!resetAt) { return ""; }
   const ts = typeof resetAt === "number" ? resetAt : new Date(resetAt).getTime();
   const diff = ts - Date.now();
-  if (diff <= 0) {return "now";}
+  if (diff <= 0) { return "now"; }
   const hours = Math.floor(diff / 3_600_000);
   const mins = Math.floor((diff % 3_600_000) / 60_000);
-  if (hours > 24) {return `${Math.floor(hours / 24)}d`;}
-  if (hours > 0) {return `${hours}h ${mins}m`;}
+  if (hours > 24) { return `${Math.floor(hours / 24)}d`; }
+  if (hours > 0) { return `${hours}h ${mins}m`; }
   return `${mins}m`;
 }
 
 function usageBarColor(pct: number): string {
-  if (pct > 80) {return "bg-red-500";}
-  if (pct > 60) {return "bg-yellow-500";}
+  if (pct > 80) { return "bg-red-500"; }
+  if (pct > 60) { return "bg-yellow-500"; }
   return "bg-emerald-500";
 }
 
@@ -133,9 +138,9 @@ function extractTotals(cost: Record<string, unknown>): Totals {
 
 function extractDaily(cost: Record<string, unknown>): DailyEntry[] {
   const raw = cost.daily;
-  if (!Array.isArray(raw)) {return [];}
+  if (!Array.isArray(raw)) { return []; }
   return raw.map((d: Record<string, unknown>) => ({
-    date: String(d.date ?? ""),
+    date: typeof d.date === "string" ? d.date : JSON.stringify(d.date ?? ""),
     totalCost: (d.totalCost as number) || 0,
     inputTokens: (d.input as number) || (d.inputTokens as number) || (d.input_tokens as number) || 0,
     outputTokens: (d.output as number) || (d.outputTokens as number) || (d.output_tokens as number) || 0,
@@ -146,19 +151,21 @@ function extractDaily(cost: Record<string, unknown>): DailyEntry[] {
 
 function extractProviders(usage: Record<string, unknown>): ProviderEntry[] {
   const raw = usage.providers;
-  if (!Array.isArray(raw)) {return [];}
+  if (!Array.isArray(raw)) { return []; }
   return raw.map((p: Record<string, unknown>) => {
     const windows = Array.isArray(p.windows)
       ? (p.windows as Array<Record<string, unknown>>).map((w) => ({
-          label: String(w.label ?? ""),
-          usedPercent: (w.usedPercent as number) || 0,
-          resetAt: (w.resetAt as number) || undefined,
-        }))
+        label: typeof w.label === "string" ? w.label : JSON.stringify(w.label ?? ""),
+        usedPercent: (w.usedPercent as number) || 0,
+        resetAt: (w.resetAt as number) || undefined,
+      }))
       : undefined;
     // Use the highest usage window for the summary bar
     const maxWindow = windows?.reduce((a, b) => (b.usedPercent > a.usedPercent ? b : a), windows[0]);
     return {
-      name: String(p.displayName ?? p.name ?? p.provider ?? "unknown"),
+      name: typeof (p.displayName ?? p.name ?? p.provider) === "string"
+        ? ((p.displayName ?? p.name ?? p.provider) as string)
+        : "unknown",
       plan: p.plan as string | undefined,
       usedPercent: maxWindow?.usedPercent ?? ((p.usedPercent as number) || 0),
       resetAt: maxWindow?.resetAt ?? ((p.resetAt as number) || undefined),
@@ -170,7 +177,7 @@ function extractProviders(usage: Record<string, unknown>): ProviderEntry[] {
 function normalizeMessagesPerDay(
   raw: ChatAnalyticsData["messagesPerDay"]
 ): Array<{ day: string; count: number }> {
-  if (!Array.isArray(raw)) {return [];}
+  if (!Array.isArray(raw)) { return []; }
   return raw
     .map((row) => ({
       day: String(row.day ?? ""),
@@ -183,7 +190,7 @@ function normalizeMessagesPerDay(
 function normalizeMessagesByChannel(
   raw: ChatAnalyticsData["messagesByChannel"]
 ): Array<{ channel: string | null; count: number }> {
-  if (!Array.isArray(raw)) {return [];}
+  if (!Array.isArray(raw)) { return []; }
   return raw
     .map((row) => ({
       channel: row.channel ?? null,
@@ -196,7 +203,7 @@ function normalizeMessagesByChannel(
 function normalizeTokensByModel(
   raw: ChatAnalyticsData["tokensByModel"]
 ): Array<{ model: string | null; input: number; output: number; total: number }> {
-  if (!Array.isArray(raw)) {return [];}
+  if (!Array.isArray(raw)) { return []; }
   return raw
     .map((row) => ({
       model: row.model ?? null,
@@ -285,11 +292,10 @@ function DailyCostChart({ daily }: { daily: DailyEntry[] }) {
         {daily.map((d, i) => (
           <div
             key={d.date}
-            className={`flex-1 text-center text-[10px] truncate ${
-              i === 0 || i === daily.length - 1 || daily.length <= 10
-                ? "text-muted-foreground"
-                : "text-transparent"
-            }`}
+            className={`flex-1 text-center text-[10px] truncate ${i === 0 || i === daily.length - 1 || daily.length <= 10
+              ? "text-muted-foreground"
+              : "text-transparent"
+              }`}
           >
             {formatShortDate(d.date)}
           </div>
@@ -632,7 +638,7 @@ export function CostDashboard() {
   }, [fetchUsage, fetchChatAnalytics]);
 
   const scheduleRefresh = useCallback(() => {
-    if (refreshTimerRef.current) {return;}
+    if (refreshTimerRef.current) { return; }
     refreshTimerRef.current = setTimeout(() => {
       refreshTimerRef.current = null;
       fetchAll().catch(() => {
@@ -647,7 +653,7 @@ export function CostDashboard() {
 
   const handleGatewayEvent = useCallback(
     (event: GatewayEvent) => {
-      if (event.type !== "gateway_event") {return;}
+      if (event.type !== "gateway_event") { return; }
       const eventName = (event.event || "").toLowerCase();
       if (
         eventName.includes("usage.") ||
@@ -691,8 +697,8 @@ export function CostDashboard() {
 
   // --- Data extraction ---
 
-  const usage = (data?.usage || {}) as Record<string, unknown>;
-  const cost = (data?.cost || {}) as Record<string, unknown>;
+  const usage = (data?.usage || {});
+  const cost = (data?.cost || {});
   const totals = extractTotals(cost);
   const daily = extractDaily(cost);
   const providers = extractProviders(usage);
@@ -715,7 +721,8 @@ export function CostDashboard() {
   const refreshBusy = loading || chatAnalyticsLoading;
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-auto p-6 space-y-4">
+      <PageDescriptionBanner pageId="usage" />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -730,11 +737,10 @@ export function CostDashboard() {
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 text-xs font-medium transition-all ${
-                  period === p
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`px-3 py-1.5 text-xs font-medium transition-all ${period === p
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 {p === "today" ? "Today" : p === "7d" ? "7 Days" : "30 Days"}
               </button>
@@ -757,12 +763,34 @@ export function CostDashboard() {
         </div>
       </div>
 
-      <div className="mb-4 text-xs text-muted-foreground flex items-center gap-2">
-        <Clock3 className="w-3.5 h-3.5" />
+      <div className="mb-4 text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
+        <Clock3 className="w-3.5 h-3.5 shrink-0" />
         <span>As of {formatTimestamp(data?.fetchedAt)}</span>
         <span>&bull;</span>
-        <span>Period: {(data?.period || period).toUpperCase()}</span>
+        <span>
+          Cost: {(data?.period || period).toUpperCase()}
+          {data?.costPeriodSupported === false && " (gateway unavailable)"}
+        </span>
+        {data?.usagePeriodSupported === false && data?.costPeriodSupported !== false && (
+          <>
+            <span>&bull;</span>
+            <span>Usage: current (period filtering not supported by gateway)</span>
+          </>
+        )}
       </div>
+
+      {data?.usagePeriodSupported === false && data?.costPeriodSupported !== false && (
+        <div
+          className="mb-4 rounded border border-amber-300/50 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 flex items-start gap-2"
+          role="status"
+        >
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>
+            Cost data is filtered by the selected period. Provider usage and active sessions are
+            always current—period filtering is not supported by the gateway for those metrics.
+          </span>
+        </div>
+      )}
 
       {hasAnalyticsWarning && (
         <div className="mb-4 rounded border border-amber-300/50 bg-amber-500/10 px-3 py-2 text-xs text-amber-700">

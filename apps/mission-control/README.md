@@ -331,7 +331,29 @@ Mission Control exposes 52+ REST API endpoints. Key routes:
 | `PATCH`    | `/api/settings/models`            | Update local model configuration           |
 | `DELETE`   | `/api/settings/models`            | Remove a local model                       |
 
-Full endpoint map: see [DIRECTORY.md](./DIRECTORY.md#-api-endpoint-map)
+Full endpoint map: see [DIRECTORY.md](./DIRECTORY.md#api-endpoint-map)
+
+### Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [Page Map](./docs/product/page-map.md) | View → route → API matrix |
+| [Board & Task Lifecycle](./docs/product/board-and-task-lifecycle.md) | Kanban workflow, task states |
+| [Chat Operations](./docs/product/chat-operations.md) | Chat, sessions, council |
+| [Orchestrator](./docs/product/orchestrator-batch-flow.md) | Parallel task dispatch |
+| [Specialists](./docs/product/specialists-intelligence.md) | AI specialist recommendations |
+| [Learning Hub](./docs/product/learning-hub.md) | Lessons, notifications |
+| [Usage](./docs/product/usage-telemetry.md) | Token usage and cost |
+| [Logs](./docs/product/logs-viewer.md) | Gateway log stream |
+| [Approvals](./docs/product/approvals-governance.md) | Command approval queue |
+| [Missions](./docs/product/missions.md) | Mission lifecycle |
+| [Integrations](./docs/product/integrations.md) | Integrations and restart |
+| [Tools Playground](./docs/product/tools-playground.md) | RPC testing |
+| [Schedules](./docs/product/schedules.md) | Cron job management |
+| [Settings](./docs/product/settings-and-runtime-config.md) | API keys, models |
+| [Frontend Contracts](./docs/api/frontend-contracts.md) | API response shapes |
+| [Error Model](./docs/api/error-model.md) | Error format and handling |
+| [Known Limitations](./docs/known-limitations.md) | Current limitations registry |
 
 ---
 

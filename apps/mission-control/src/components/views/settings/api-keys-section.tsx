@@ -189,7 +189,7 @@ export function ApiKeysSection({ defaultProvider, onProviderHandled }: ApiKeysSe
 
     return (
         <SettingsSection
-            id="api-keys"
+            id="settings-api-keys"
             icon={<Key className="w-5 h-5" />}
             title="API Keys"
             description="Manage API keys for AI providers"

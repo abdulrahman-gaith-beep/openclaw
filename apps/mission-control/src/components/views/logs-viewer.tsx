@@ -18,6 +18,7 @@ import {
   type GatewayConnectionState,
   type GatewayEvent,
 } from "@/lib/hooks/use-gateway-events";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 
 interface LogLine {
   id: number;
@@ -280,6 +281,9 @@ export function LogsViewer() {
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="shrink-0 px-6 py-4 border-b border-border/50">
+        <PageDescriptionBanner pageId="logs" />
+      </div>
       {/* Header */}
       <div className="p-4 border-b border-border bg-card/30 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -362,7 +366,10 @@ export function LogsViewer() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setLogs([])}
+            onClick={() => {
+              setLogs([]);
+              seenHashes.current.clear();
+            }}
             className="h-7 w-7 p-0"
             title="Clear logs"
           >

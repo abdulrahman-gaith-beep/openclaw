@@ -49,6 +49,7 @@ function ensureSystemFeedbackForCompletedTask(params: {
   taskTitle: string;
   specialistId: string;
   previousStatus: string;
+  workspaceId: string;
 }): void {
   const { taskId, taskTitle, specialistId, previousStatus } = params;
   const specialist = getSpecializedAgent(specialistId);
@@ -84,6 +85,7 @@ function ensureSystemFeedbackForCompletedTask(params: {
     type: "specialist_feedback_auto",
     task_id: taskId,
     agent_id: specialistId,
+    workspace_id: params.workspaceId,
     message: `Auto-feedback recorded for "${specialist.name}" on "${taskTitle}"`,
     metadata: {
       rating,
@@ -258,6 +260,7 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
           taskTitle: existing.title,
           specialistId: existing.assigned_agent_id,
           previousStatus: existing.status,
+          workspaceId: existing.workspace_id,
         });
       }
     }

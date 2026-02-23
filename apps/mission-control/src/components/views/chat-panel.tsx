@@ -31,6 +31,7 @@ import {
   type FileAttachmentsRef,
 } from "@/components/chat/file-attachments";
 import type { FileAttachment } from "@/lib/file-utils";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 
 interface ChatMessage {
   role: string;
@@ -1364,7 +1365,11 @@ export function ChatPanel() {
   );
 
   return (
-    <div className="flex h-full min-h-0 w-full overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 w-full overflow-hidden">
+      <div className="shrink-0 px-4 py-3 border-b border-border/50">
+        <PageDescriptionBanner pageId="chat" />
+      </div>
+      <div className="flex flex-1 min-h-0 overflow-hidden">
       <aside className="hidden lg:flex w-72 shrink-0 border-r border-border/70 bg-background/30 backdrop-blur-sm flex-col">
         <div className="px-3 py-3 border-b border-border/70 flex items-center justify-between">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -2067,6 +2072,7 @@ export function ChatPanel() {
             </p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

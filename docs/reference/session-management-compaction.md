@@ -41,10 +41,10 @@ OpenClaw is designed around a single **Gateway process** that owns session state
 
 OpenClaw persists sessions in two layers:
 
-1. **Session store (`sessions.json`)**
-   - Key/value map: `sessionKey -> SessionEntry`
-   - Small, mutable, safe to edit (or delete entries)
-   - Tracks session metadata (current session id, last activity, toggles, token counters, etc.)
+1. **Session metadata (primary: SQLite)**
+   - **Primary:** `~/.openclaw/chat.db` — SQLite `sessions` table (key, agent_id, store_path, payload, updated_at). Used by default for reads and writes.
+   - **Legacy/fallback:** `~/.openclaw/agents/<agentId>/sessions/sessions.json` — key/value map `sessionKey -> SessionEntry`. Still written when SQLite is enabled (dual-write). Read when SQLite is disabled (`OPENCLAW_SESSION_STORE_SQLITE=0`) or when SQLite returns no rows (e.g. before first backfill).
+   - Set `OPENCLAW_SESSION_STORE_SQLITE=0` (or `false`/`no`) to use JSON-only. Run `pnpm backfill:sessions` to migrate existing `sessions.json` into `chat.db`.
 
 2. **Transcript (`<sessionId>.jsonl`)**
    - Append-only transcript with tree structure (entries have `id` + `parentId`)
@@ -57,8 +57,8 @@ OpenClaw persists sessions in two layers:
 
 Per agent, on the Gateway host:
 
-- Store: `~/.openclaw/agents/<agentId>/sessions/sessions.json`
-- Transcripts: `~/.openclaw/agents/<agentId>/sessions/<sessionId>.jsonl`
+- **Session metadata:** `~/.openclaw/chat.db` (SQLite, default) and/or `~/.openclaw/agents/<agentId>/sessions/sessions.json` (legacy).
+- **Transcripts:** `~/.openclaw/agents/<agentId>/sessions/<sessionId>.jsonl`
   - Telegram topic sessions: `.../<sessionId>-topic-<threadId>.jsonl`
 
 OpenClaw resolves these via `src/config/sessions.ts`.

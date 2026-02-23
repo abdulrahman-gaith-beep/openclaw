@@ -18,6 +18,7 @@ import {
   deleteProfileQuerySchema,
   parseOrThrow,
 } from "@/lib/schemas";
+import { isValidWorkspaceId } from "@/lib/workspaces-server";
 
 export const GET = withApiGuard(async () => {
   try {
@@ -35,6 +36,10 @@ export const POST = withApiGuard(async (request: NextRequest) => {
   try {
     const payload = parseOrThrow(createProfileSchema, await request.json());
 
+    if (!isValidWorkspaceId(payload.workspace_id)) {
+      throw new UserError("workspace_id is invalid", 400);
+    }
+
     const profile = createProfile({
       id: `profile-${uuidv4().slice(0, 8)}`,
       name: sanitizeInput(payload.name),
@@ -45,6 +50,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
     logActivity({
       id: uuidv4(),
       type: "profile_created",
+      workspace_id: payload.workspace_id,
       message: `Profile "${profile.name}" (${profile.id}) created`,
       metadata: { profile_id: profile.id },
     });
@@ -57,10 +63,14 @@ export const POST = withApiGuard(async (request: NextRequest) => {
 
 export const PATCH = withApiGuard(async (request: NextRequest) => {
   try {
-    const { id, ...patch } = parseOrThrow(
+    const { id, workspace_id, ...patch } = parseOrThrow(
       updateProfileSchema,
       await request.json()
     );
+
+    if (!isValidWorkspaceId(workspace_id)) {
+      throw new UserError("workspace_id is invalid", 400);
+    }
 
     const existing = getProfile(id);
     if (!existing) {throw new UserError("Profile not found", 404);}
@@ -85,6 +95,7 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
     logActivity({
       id: uuidv4(),
       type: "profile_updated",
+      workspace_id,
       message: `Profile "${existing.name}" (${id}) updated`,
       metadata: { changes: Object.keys(normalizedPatch) },
     });
@@ -98,9 +109,14 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
 export const DELETE = withApiGuard(async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
-    const { id } = parseOrThrow(deleteProfileQuerySchema, {
+    const { id, workspace_id } = parseOrThrow(deleteProfileQuerySchema, {
       id: searchParams.get("id"),
+      workspace_id: searchParams.get("workspace_id"),
     });
+
+    if (!isValidWorkspaceId(workspace_id)) {
+      throw new UserError("workspace_id is invalid", 400);
+    }
 
     const existing = getProfile(id);
     if (!existing) {throw new UserError("Profile not found", 404);}
@@ -119,6 +135,7 @@ export const DELETE = withApiGuard(async (request: NextRequest) => {
     logActivity({
       id: uuidv4(),
       type: "profile_deleted",
+      workspace_id,
       message: `Profile "${existing.name}" (${id}) deleted`,
       metadata: { deleted_profile_id: id },
     });

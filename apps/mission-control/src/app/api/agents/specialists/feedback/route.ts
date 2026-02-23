@@ -18,6 +18,7 @@ import {
   specialistFeedbackSchema,
 } from "@/lib/schemas";
 import { buildSpecialistIntelligence } from "@/lib/specialist-intelligence";
+import { isValidWorkspaceId } from "@/lib/workspaces-server";
 
 // GET /api/agents/specialists/feedback
 export const GET = withApiGuard(async (request: NextRequest) => {
@@ -62,6 +63,13 @@ export const POST = withApiGuard(async (request: NextRequest) => {
       if (!task) {
         throw new UserError("Task not found", 404);
       }
+      if (task.workspace_id !== payload.workspace_id) {
+        throw new UserError("Task does not belong to the specified workspace", 400);
+      }
+    }
+
+    if (!isValidWorkspaceId(payload.workspace_id)) {
+      throw new UserError("workspace_id is invalid", 400);
     }
 
     const feedback = addSpecialistFeedback({
@@ -79,6 +87,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
       type: "specialist_feedback",
       agent_id: specialist.id,
       task_id: payload.taskId,
+      workspace_id: payload.workspace_id,
       message: `Specialist feedback recorded for "${specialist.name}"`,
       metadata: {
         rating: payload.rating,

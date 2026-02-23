@@ -1,5 +1,8 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { fadeInVariants, useReducedMotion } from "@/design-system";
+
 /**
  * Content-shaped loading skeletons for each view type.
  * Replaces the generic Loader2 spinner with layout-aware placeholders
@@ -17,10 +20,10 @@ function Pulse({ className = "", style }: { className?: string; style?: React.CS
 
 function SkeletonCard({ className = "" }: { className?: string }) {
     return (
-        <div className={`glass-card p-4 space-y-3 ${className}`}>
-            <Pulse className="h-4 w-2/5" />
-            <Pulse className="h-3 w-4/5" />
-            <Pulse className="h-3 w-3/5" />
+        <div className={`glass-2 skeleton-shimmer p-4 space-y-3 rounded-xl overflow-hidden relative ${className}`}>
+            <Pulse className="h-4 w-2/5 relative z-[1]" />
+            <Pulse className="h-3 w-4/5 relative z-[1]" />
+            <Pulse className="h-3 w-3/5 relative z-[1]" />
         </div>
     );
 }
@@ -55,13 +58,13 @@ function ListSkeleton() {
             </div>
             <div className="space-y-3">
                 {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="glass-card p-4 flex items-center gap-4">
-                        <Pulse className="h-10 w-10 rounded-full shrink-0" />
-                        <div className="flex-1 space-y-2">
+                    <div key={i} className="glass-2 skeleton-shimmer p-4 flex items-center gap-4 rounded-xl overflow-hidden relative">
+                        <Pulse className="h-10 w-10 rounded-full shrink-0 relative z-[1]" />
+                        <div className="flex-1 space-y-2 relative z-[1]">
                             <Pulse className="h-4 w-3/5" />
                             <Pulse className="h-3 w-2/5" />
                         </div>
-                        <Pulse className="h-6 w-16 rounded-full" />
+                        <Pulse className="h-6 w-16 rounded-full relative z-[1]" />
                     </div>
                 ))}
             </div>
@@ -76,16 +79,16 @@ function DashboardSkeleton() {
             {/* Stat cards row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="glass-card p-4 space-y-2">
-                        <Pulse className="h-3 w-20" />
-                        <Pulse className="h-8 w-16" />
-                        <Pulse className="h-3 w-24" />
+                    <div key={i} className="glass-2 skeleton-shimmer p-4 space-y-2 rounded-xl overflow-hidden relative">
+                        <Pulse className="h-3 w-20 relative z-[1]" />
+                        <Pulse className="h-8 w-16 relative z-[1]" />
+                        <Pulse className="h-3 w-24 relative z-[1]" />
                     </div>
                 ))}
             </div>
             {/* Content area */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="glass-card p-5 space-y-4">
+                <div className="glass-2 p-5 space-y-4 rounded-xl">
                     <Pulse className="h-5 w-32" />
                     {Array.from({ length: 4 }).map((_, i) => (
                         <div key={i} className="flex items-center gap-3">
@@ -97,7 +100,7 @@ function DashboardSkeleton() {
                         </div>
                     ))}
                 </div>
-                <div className="glass-card p-5 space-y-4">
+                <div className="glass-2 p-5 space-y-4 rounded-xl">
                     <Pulse className="h-5 w-40" />
                     <Pulse className="h-48 w-full rounded-md" />
                 </div>
@@ -181,7 +184,7 @@ function LogSkeleton() {
                     <Pulse className="h-8 w-20 rounded-md" />
                 </div>
             </div>
-            <div className="glass-card p-4 font-mono space-y-2">
+            <div className="glass-2 p-4 font-mono space-y-2 rounded-xl">
                 {lineWidths.map((w, i) => (
                     <Pulse
                         key={i}
@@ -217,9 +220,19 @@ export function ViewSkeleton({
     variant?: SkeletonVariant;
 }) {
     const SkeletonComponent = VARIANT_MAP[variant];
+    const reduceMotion = useReducedMotion();
+    const variants = reduceMotion ? { initial: {}, animate: {} } : fadeInVariants;
+
     return (
-        <div className="flex-1 min-h-0" aria-busy="true" aria-label="Loading view">
+        <motion.div
+            className="flex-1 min-h-0"
+            aria-busy="true"
+            aria-label="Loading view"
+            variants={variants}
+            initial="initial"
+            animate="animate"
+        >
             <SkeletonComponent />
-        </div>
+        </motion.div>
     );
 }

@@ -1,8 +1,10 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
-import { Wifi, WifiOff, Moon, Sun, Terminal, Activity, ExternalLink, Play, Loader2, Menu, X as XIcon } from "lucide-react";
+import { Wifi, WifiOff, Moon, Sun, Terminal, Activity, ExternalLink, Play, Loader2, Menu, X as XIcon, Search, Settings2, Bell, Shield } from "lucide-react";
 import { useState, useCallback } from "react";
+import { fadeInVariants, useReducedMotion } from "@/design-system";
 import {
   Tooltip,
   TooltipContent,
@@ -16,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 import type { GatewayStatus } from "@/lib/hooks/use-tasks";
 
 import { ProfileSwitcher } from "@/components/layout/profile-switcher";
@@ -66,6 +70,11 @@ interface HeaderProps {
   showToast?: (message: string, type: "success" | "error") => void;
   mobileSidebarOpen?: boolean;
   onMobileSidebarToggle?: () => void;
+  onSearchClick?: () => void;
+  isWorkspaceOwner?: boolean;
+  onNavigateToWorkspaceSettings?: () => void;
+  pendingApprovalsCount?: number;
+  onNavigateToApprovals?: () => void;
 }
 
 export function Header({
@@ -82,7 +91,12 @@ export function Header({
   onTerminalToggle,
   showToast,
   mobileSidebarOpen,
-  onMobileSidebarToggle
+  onMobileSidebarToggle,
+  onSearchClick,
+  isWorkspaceOwner,
+  onNavigateToWorkspaceSettings,
+  pendingApprovalsCount = 0,
+  onNavigateToApprovals,
 }: HeaderProps) {
   const liveConnected =
     gatewayConnectionState === "connected" && gatewayStatus.connected;
@@ -115,8 +129,16 @@ export function Header({
     }
   }, [showToast]);
 
+  const reduceMotion = useReducedMotion();
+  const variants = reduceMotion ? { initial: {}, animate: {} } : fadeInVariants;
+
   return (
-    <header className="h-14 border-b border-border bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 sm:px-6 z-10 shrink-0">
+    <motion.header
+      initial="initial"
+      animate="animate"
+      variants={variants}
+      className="h-14 border-b border-border glass-2 flex items-center justify-between px-4 sm:px-6 z-10 shrink-0"
+    >
       <div className="flex items-center gap-2 sm:gap-4">
         {onMobileSidebarToggle && (
           <button
@@ -133,7 +155,7 @@ export function Header({
           <span className="inline sm:hidden text-base">OMC</span>
         </h1>
         <ProfileSwitcher onManageProfiles={onManageProfiles} />
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-1">
           <Select
             value={activeWorkspace}
             onValueChange={(value: string) => onWorkspaceChange(value)}
@@ -149,6 +171,22 @@ export function Header({
               ))}
             </SelectContent>
           </Select>
+          {isWorkspaceOwner && onNavigateToWorkspaceSettings && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={onNavigateToWorkspaceSettings}
+                  className="w-8 h-8 rounded flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+                  aria-label="Edit workspace settings"
+                >
+                  <Settings2 className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Edit workspace settings</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
         <Separator orientation="vertical" className="h-6" />
         <div className="flex items-center gap-2 text-xs font-mono text-primary" role="status" aria-label={`Gateway status: ${statusLabel}`}>
@@ -251,12 +289,99 @@ export function Header({
 
         <ProviderStatusWidget />
 
+        {onSearchClick && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onSearchClick}
+                className="w-8 h-8 rounded flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+                aria-label="Search (Cmd+K)"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Search tasks, missions, specialists (⌘K)</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {onNavigateToApprovals && (
+          <Popover>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <button
+                    className="relative w-8 h-8 rounded flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+                    aria-label={pendingApprovalsCount > 0 ? `${pendingApprovalsCount} pending approvals` : "Approvals"}
+                  >
+                    <Bell className="w-4 h-4" />
+                    {pendingApprovalsCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
+                        {pendingApprovalsCount > 99 ? "99+" : pendingApprovalsCount}
+                      </span>
+                    )}
+                  </button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>{pendingApprovalsCount > 0 ? `${pendingApprovalsCount} pending approval(s)` : "Approvals"}</p>
+              </TooltipContent>
+            </Tooltip>
+            <PopoverContent align="end" className="w-64">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-primary" />
+                  <span className="font-medium text-sm">Approvals</span>
+                </div>
+                {pendingApprovalsCount > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    {pendingApprovalsCount} pending approval{pendingApprovalsCount !== 1 ? "s" : ""} waiting for your decision.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No pending approvals.
+                  </p>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2"
+                  onClick={onNavigateToApprovals}
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  View approvals
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
+
         <Separator orientation="vertical" className="h-6" />
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={onTerminalToggle}
-              className={`w-8 h-8 rounded flex items-center justify-center transition-all ${terminalOpen
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-all ${terminalOpen
+                ? "text-primary bg-primary/10"
+                : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+                }`}
+              aria-label={terminalOpen ? "Hide activity feed" : "Show activity feed"}
+              aria-pressed={terminalOpen}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              <span>Activity</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{terminalOpen ? "Hide activity feed" : "Show activity feed"}</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onTerminalToggle}
+              className={`sm:hidden w-8 h-8 rounded flex items-center justify-center transition-all ${terminalOpen
                 ? "text-primary bg-primary/10"
                 : "text-muted-foreground hover:text-primary hover:bg-primary/5"
                 }`}
@@ -272,6 +397,6 @@ export function Header({
         </Tooltip>
         <ThemeToggle />
       </div>
-    </header>
+    </motion.header>
   );
 }

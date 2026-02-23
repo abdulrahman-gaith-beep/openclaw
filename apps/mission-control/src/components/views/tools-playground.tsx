@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 
 type ParamDef = {
   name: string;
@@ -653,9 +654,13 @@ export function ToolsPlayground() {
   const Icon = selectedTool.icon;
 
   return (
-    <div className="flex-1 flex overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden min-w-0 overflow-x-hidden">
+      <div className="shrink-0 px-4 sm:px-6 py-4 border-b border-border/50">
+        <PageDescriptionBanner pageId="tools" />
+      </div>
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-w-0">
       {/* Left panel — Tool list */}
-      <div className="w-80 border-r border-border bg-card/30 flex flex-col shrink-0">
+      <div className="w-full lg:w-80 border-r-0 lg:border-r border-border bg-card/30 flex flex-col shrink-0 min-w-0">
         {/* Search */}
         <div className="p-3 border-b border-border">
           <div className="relative">
@@ -666,7 +671,8 @@ export function ToolsPlayground() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search tools..."
               maxLength={200}
-              className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full pl-9 pr-3 py-2 min-h-11 bg-background border border-border rounded text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              aria-label="Search tools"
             />
           </div>
         </div>
@@ -677,10 +683,12 @@ export function ToolsPlayground() {
             <button
               key={cat}
               onClick={() => setCategory(cat)}
-              className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all ${category === cat
+              className={`px-2 py-2 min-h-11 rounded text-[11px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${category === cat
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:bg-accent"
                 }`}
+              aria-pressed={category === cat}
+              aria-label={`Filter by ${cat}`}
             >
               {cat}
             </button>
@@ -698,10 +706,12 @@ export function ToolsPlayground() {
                 <button
                   key={tool.tool}
                   onClick={() => setSelectedTool(tool)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded text-left text-sm transition-all group ${isActive
+                  className={`w-full flex items-center gap-2.5 px-3 py-3 min-h-11 rounded text-left text-sm transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${isActive
                     ? "bg-primary/10 text-primary border border-primary/20"
                     : "hover:bg-accent text-foreground"
                     }`}
+                  aria-pressed={isActive}
+                  aria-label={`Select ${tool.label}`}
                 >
                   <TIcon className={`w-4 h-4 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
                   <div className="flex-1 min-w-0">
@@ -721,10 +731,10 @@ export function ToolsPlayground() {
       </div>
 
       {/* Right panel — Tool details */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Tool header */}
-        <div className="p-5 border-b border-border bg-card/30">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="p-4 sm:p-5 border-b border-border bg-card/30">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-[260px]">
               <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
                 <Icon className="w-5 h-5 text-primary" />
@@ -752,8 +762,9 @@ export function ToolsPlayground() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => toggleFavorite(selectedTool.tool)}
-                className="p-2 rounded hover:bg-accent transition-colors"
+                className="p-2 min-h-11 min-w-11 rounded hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 title={favorites.has(selectedTool.tool) ? "Remove from favorites" : "Add to favorites"}
+                aria-label={favorites.has(selectedTool.tool) ? "Remove from favorites" : "Add to favorites"}
               >
                 {favorites.has(selectedTool.tool) ? (
                   <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
@@ -766,11 +777,13 @@ export function ToolsPlayground() {
               </Badge>
               <button
                 onClick={() => setSimpleMode((s) => !s)}
-                className={`px-3 py-1.5 rounded-md border text-xs font-semibold transition ${simpleMode
+                className={`px-3 py-2 min-h-11 rounded-md border text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${simpleMode
                   ? "bg-primary/10 text-primary border-primary/25 hover:bg-primary/15"
                   : "bg-card/40 text-muted-foreground border-border hover:text-foreground"
                   }`}
                 title="Toggle Simple / Advanced view"
+                aria-pressed={!simpleMode}
+                aria-label="Toggle Simple / Advanced view"
               >
                 {simpleMode ? "👶 Simple" : "🧑‍💻 Advanced"}
               </button>
@@ -779,7 +792,7 @@ export function ToolsPlayground() {
         </div>
 
         <ScrollArea className="flex-1">
-          <div className="p-5">
+          <div className="p-4 sm:p-5 min-w-0">
             {/* Gateway connection hint */}
             <div className="mb-5">
               {gatewayOk === null ? (
@@ -813,13 +826,15 @@ export function ToolsPlayground() {
                   <div className="mt-3 flex gap-2 flex-wrap">
                     <button
                       onClick={() => navigateTo("logs")}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-card/40 hover:bg-primary/5 hover:border-primary/30 transition text-sm"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 min-h-11 rounded-md border border-border bg-card/40 hover:bg-primary/5 hover:border-primary/30 transition text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                      aria-label="Open Logs"
                     >
                       Open Logs <ArrowRight className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => navigateTo("settings")}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-card/40 hover:bg-primary/5 hover:border-primary/30 transition text-sm"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 min-h-11 rounded-md border border-border bg-card/40 hover:bg-primary/5 hover:border-primary/30 transition text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                      aria-label="Open Settings"
                     >
                       Open Settings <ArrowRight className="w-4 h-4" />
                     </button>
@@ -879,8 +894,9 @@ export function ToolsPlayground() {
                         <button
                           key={`${selectedTool.tool}:${l.viewId}`}
                           onClick={() => navigateTo(l.viewId)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-card/40 hover:bg-primary/5 hover:border-primary/30 transition text-sm"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 min-h-11 rounded-md border border-border bg-card/40 hover:bg-primary/5 hover:border-primary/30 transition text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                           title={l.note || ""}
+                          aria-label={`Open ${l.label}`}
                         >
                           <span>{l.label}</span>
                           <ArrowRight className="w-4 h-4" />
@@ -899,7 +915,8 @@ export function ToolsPlayground() {
                           <button
                             key={`${selectedTool.tool}:${ex.label}`}
                             onClick={() => setParamValues(ex.params)}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/15 transition text-sm"
+                            className="inline-flex items-center gap-2 px-3 py-2 min-h-11 rounded-md bg-primary/10 text-primary hover:bg-primary/15 transition text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                            aria-label={`Fill example: ${ex.label}`}
                           >
                             <span className="font-medium">{ex.label}</span>
                             <span className="text-primary/70">(fill)</span>
@@ -944,7 +961,8 @@ export function ToolsPlayground() {
                           placeholder={param.placeholder || ""}
                           maxLength={5000}
                           rows={4}
-                          className="w-full px-3 py-2 bg-background border border-border rounded text-base sm:text-sm font-mono focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+                          className="w-full px-3 py-2 min-h-11 bg-background border border-border rounded text-base sm:text-sm font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 resize-y"
+                          aria-label={param.label}
                         />
                       ) : (
                         <input
@@ -958,7 +976,8 @@ export function ToolsPlayground() {
                           }
                           placeholder={param.placeholder || ""}
                           maxLength={1000}
-                          className="w-full px-3 py-2 bg-background border border-border rounded text-base sm:text-sm font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                          className="w-full px-3 py-2 min-h-11 bg-background border border-border rounded text-base sm:text-sm font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                          aria-label={param.label}
                         />
                       )}
                     </div>
@@ -972,8 +991,9 @@ export function ToolsPlayground() {
               <Button
                 onClick={runTool}
                 disabled={loading || gatewayOk === false}
-                className="gap-2"
+                className="gap-2 min-h-11"
                 title={gatewayOk === false ? "Gateway is offline — cannot run tools" : undefined}
+                aria-label="Run selected tool"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                 {loading ? "Running…" : gatewayOk === false ? "Gateway offline" : "Run tool"}
@@ -1001,8 +1021,9 @@ export function ToolsPlayground() {
                     <span className="text-muted-foreground font-mono">{result.duration}ms</span>
                     <button
                       onClick={copyResult}
-                      className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+                      className="flex items-center gap-1 min-h-11 min-w-11 px-2 rounded text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                       title="Copy raw result JSON"
+                      aria-label="Copy result to clipboard"
                     >
                       {copied ? (
                         <Check className="w-3.5 h-3.5 text-green-500" />
@@ -1087,6 +1108,7 @@ export function ToolsPlayground() {
             )}
           </div>
         </ScrollArea>
+      </div>
       </div>
     </div>
   );

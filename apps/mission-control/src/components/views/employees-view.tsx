@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Users,
   Plus,
@@ -21,6 +22,7 @@ import {
   X,
   GitBranch,
 } from "lucide-react";
+import { staggerContainerVariants, glassCardVariants, useReducedMotion } from "@/design-system";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -34,6 +36,7 @@ import {
   saveCommunityUsecaseFavorites,
   toggleCommunityUsecaseFavorite,
 } from "@/lib/community-usecase-favorites";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 
 export type EmployeeDepartment =
   | "operations"
@@ -1301,8 +1304,19 @@ export function EmployeesView(props: {
     });
   }, [taskForm, taskSuggestedSpecialist?.id, submitEmployeeTask]);
 
+  const reduceMotion = useReducedMotion();
+  const noMotion = { initial: {}, animate: {} };
+  const containerVariants = reduceMotion ? noMotion : staggerContainerVariants;
+  const cardVariants = reduceMotion ? noMotion : glassCardVariants;
+
   return (
-    <div className="p-6 space-y-6">
+    <motion.div
+      className="p-6 space-y-6"
+      variants={containerVariants}
+      initial="initial"
+      animate="animate"
+    >
+      <PageDescriptionBanner pageId="employees" className="mb-4" />
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -1351,27 +1365,27 @@ export function EmployeesView(props: {
 
       {/* Top stats (addictive glanceable widgets) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-xl p-4">
+        <motion.div variants={cardVariants} className="glass-2 border border-border rounded-xl p-4">
           <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1 flex items-center gap-1.5">
             <Building2 className="w-3.5 h-3.5" /> Workforce (active)
           </div>
           <div className="text-3xl font-bold text-primary">{totals.activeCount}</div>
           <div className="text-xs text-muted-foreground mt-1">in this workspace</div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
+        </motion.div>
+        <motion.div variants={cardVariants} className="glass-2 border border-border rounded-xl p-4">
           <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1 flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5" /> Working now
           </div>
           <div className="text-3xl font-bold text-amber-400">{totals.workingCount}</div>
           <div className="text-xs text-muted-foreground mt-1">in progress / review</div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
+        </motion.div>
+        <motion.div variants={cardVariants} className="glass-2 border border-border rounded-xl p-4">
           <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1 flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5" /> Guardrails
           </div>
           <div className="text-3xl font-bold text-emerald-400">Draft-first</div>
           <div className="text-xs text-muted-foreground mt-1">approval gates will be configured per account</div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Filters */}
@@ -1451,14 +1465,14 @@ export function EmployeesView(props: {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {loading ? (
           Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-card border border-border rounded-xl p-5 animate-pulse">
+            <div key={i} className="glass-2 border border-border rounded-xl p-5 animate-pulse">
               <div className="h-4 w-32 bg-muted rounded" />
               <div className="h-3 w-48 bg-muted rounded mt-2" />
               <div className="h-20 bg-muted/40 rounded mt-4" />
             </div>
           ))
         ) : filtered.length === 0 ? (
-          <div className="col-span-full bg-card border border-dashed border-border rounded-xl p-10 text-center">
+          <div className="col-span-full glass-2 border border-dashed border-border rounded-xl p-10 text-center">
             <p className="text-sm text-muted-foreground">No employees found.</p>
             <div className="mt-4 flex justify-center gap-2">
               <Button onClick={() => setCreateOpen(true)}>
@@ -1500,7 +1514,7 @@ export function EmployeesView(props: {
               <button
                 key={e.id}
                 onClick={() => setSelected(e)}
-                className={`text-left group bg-card border rounded-xl p-5 transition-all hover:border-primary/50 hover:shadow-[0_0_20px_oklch(0.58_0.2_260/0.15)] ${
+                className={`text-left group glass-2 border rounded-xl p-5 transition-all hover:border-primary/50 hover:shadow-[0_0_20px_oklch(0.58_0.2_260/0.15)] ${
                   busy ? "border-primary/25" : "border-border"
                 }`}
               >
@@ -1559,7 +1573,7 @@ export function EmployeesView(props: {
         )}
       </div>
       ) : (
-        <div className="rounded-xl border border-border bg-card/40 p-6">
+        <div className="rounded-xl border border-border glass-2 p-6">
           {hierarchyLoading ? (
             <p className="text-sm text-muted-foreground animate-pulse text-center">Loading org chart...</p>
           ) : orgRoots.length === 0 ? (
@@ -1815,11 +1829,24 @@ export function EmployeesView(props: {
                                 }}
                               >
                                 <option value="">Dispatch…</option>
-                                {agents.map((a) => (
-                                  <option key={a.id} value={a.id}>
-                                    {a.name || a.id}
-                                  </option>
-                                ))}
+                                {agents.length > 0 && (
+                                  <optgroup label="Gateway Agents">
+                                    {agents.map((a) => (
+                                      <option key={a.id} value={a.id}>
+                                        {a.name || a.id}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                                {SPECIALIZED_AGENTS.length > 0 && (
+                                  <optgroup label="AI Specialists">
+                                    {SPECIALIZED_AGENTS.map((s) => (
+                                      <option key={s.id} value={s.id}>
+                                        {s.name}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
                               </select>
                             </div>
                           </div>
@@ -2232,7 +2259,7 @@ export function EmployeesView(props: {
                 )}
                 {SPECIALIZED_AGENTS.map((specialist) => (
                   <option key={specialist.id} value={specialist.id}>
-                    {specialist.icon} {specialist.name}
+                    {specialist.name}
                   </option>
                 ))}
               </select>
@@ -2641,6 +2668,6 @@ export function EmployeesView(props: {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

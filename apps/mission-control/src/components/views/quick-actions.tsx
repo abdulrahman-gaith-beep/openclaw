@@ -103,6 +103,10 @@ interface QuickActionsProps {
   taskCount: number;
   pendingApprovals?: number;
   workspaceId?: string;
+  /** Called when quick-create task API fails; enables user-visible error (no silent failures). */
+  onError?: (message: string) => void;
+  /** Called when quick-create task succeeds; allows parent to refetch tasks. */
+  onTaskCreated?: () => void;
 }
 
 // --- Model Options ---
@@ -159,6 +163,8 @@ export function QuickActions({
   taskCount,
   pendingApprovals = 0,
   workspaceId,
+  onError,
+  onTaskCreated,
 }: QuickActionsProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -282,7 +288,7 @@ export function QuickActions({
     {
       id: "nav-learn",
       label: "Learning Hub",
-      description: "Tutorials and documentation",
+      description: "Vibe coding rules, magic phrases, lessons from r/cursor",
       icon: BookOpen,
       category: "navigation",
       action: () => { onNavigate("learn"); closePalette(); },
@@ -300,7 +306,7 @@ export function QuickActions({
     {
       id: "action-new-task",
       label: "Create New Task",
-      description: "Add a task to the inbox",
+      description: "Atomic prompt, production-ready. Use @file for patterns.",
       icon: Plus,
       shortcut: "N",
       category: "action",
@@ -454,7 +460,7 @@ export function QuickActions({
     if (!quickTaskTitle.trim() || creatingTask) {return;}
     setCreatingTask(true);
     try {
-      await fetch("/api/tasks", {
+      const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -464,13 +470,22 @@ export function QuickActions({
           workspace_id: workspaceId || DEFAULT_WORKSPACE,
         }),
       });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        const message = typeof data.error === "string" ? data.error : `Failed to create task (${res.status})`;
+        onError?.(message);
+        setCreatingTask(false);
+        return;
+      }
       setQuickTaskTitle("");
+      onTaskCreated?.();
       closePalette();
-    } catch {
-      // Handle error
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to create task";
+      onError?.(message);
     }
     setCreatingTask(false);
-  }, [closePalette, creatingTask, quickTaskTitle, workspaceId]);
+  }, [closePalette, creatingTask, onError, onTaskCreated, quickTaskTitle, workspaceId]);
 
   // --- Keyboard shortcuts ---
 

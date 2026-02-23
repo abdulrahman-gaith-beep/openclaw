@@ -1,9 +1,18 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { Bot, Send, CheckCircle2, Trash2, Loader2, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { timeAgo, getPriorityStyle } from "@/lib/shared";
 import type { Task } from "@/lib/hooks/use-tasks";
+import { useReducedMotion } from "@/design-system";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useDashboardLocaleContext } from "@/lib/dashboard-locale-context";
+import { getTooltip } from "@/lib/dashboard-guide-content";
 
 interface TaskCardProps {
   task: Task;
@@ -26,16 +35,21 @@ export function TaskCard({
   onClick,
   onMoveToDone,
 }: TaskCardProps) {
+  const { locale } = useDashboardLocaleContext();
   const showDispatch = task.status === "inbox" && !task.assigned_agent_id;
   const showDone = task.status === "review";
   const isReview = task.status === "review";
   const isAgentWorking = isInProgress && !!task.assigned_agent_id;
   const isDone = task.status === "done";
   const priority = getPriorityStyle(task.priority);
+  const reduceMotion = useReducedMotion();
 
   return (
-    <div
-      className={`group bg-card p-4 rounded border shadow-sm hover:shadow-[0_0_15px_oklch(0.58_0.2_260/0.1)] transition-all cursor-pointer relative overflow-hidden ${isAgentWorking
+    <motion.div
+      layout
+      whileHover={reduceMotion ? undefined : { scale: 1.02, transition: { duration: 0.2 } }}
+      whileTap={reduceMotion ? undefined : { scale: 0.99 }}
+      className={`group glass-2 p-4 rounded-xl border border-border/50 shadow-sm hover:shadow-[0_0_15px_oklch(0.58_0.2_260/0.1)] cursor-pointer relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${isAgentWorking
           ? "border-primary/50 animate-[pulse_3s_ease-in-out_infinite]"
           : isReview
             ? "border-amber-500/50 shadow-[0_0_10px_oklch(0.75_0.15_85/0.1)]"
@@ -55,6 +69,7 @@ export function TaskCard({
           onClick();
         }
       }}
+      aria-label={`Task: ${task.title}`}
     >
       {/* Active task left accent */}
       {isInProgress && task.assigned_agent_id && (
@@ -123,21 +138,28 @@ export function TaskCard({
             </span>
           )}
           {showDispatch && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onDispatch(); }}
-              className="h-6 px-2 text-[10px] text-primary hover:text-primary"
-            >
-              <Send className="w-3 h-3 mr-1" /> Dispatch
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); onDispatch(); }}
+                  className="min-h-11 min-w-11 px-2 text-[10px] text-primary hover:text-primary"
+                >
+                  <Send className="w-3 h-3 mr-1" /> Dispatch
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>{getTooltip(locale, "dispatchTask")}</p>
+              </TooltipContent>
+            </Tooltip>
           )}
           {showDone && onMoveToDone && (
             <Button
               variant="ghost"
               size="sm"
               onClick={(e) => { e.stopPropagation(); onMoveToDone(); }}
-              className="h-6 px-2 text-[10px] text-green-500 hover:text-green-400"
+              className="min-h-11 min-w-11 px-2 text-[10px] text-green-500 hover:text-green-400"
             >
               <CheckCircle2 className="w-3 h-3 mr-1" /> Done
             </Button>
@@ -150,13 +172,13 @@ export function TaskCard({
           )}
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="opacity-70 md:opacity-0 md:group-hover:opacity-100 ml-1 text-muted-foreground hover:text-destructive transition-all"
+            className="opacity-70 md:opacity-0 md:group-hover:opacity-100 ml-1 min-h-11 min-w-11 flex items-center justify-center rounded text-muted-foreground hover:text-destructive transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:opacity-100"
             aria-label={`Delete task ${task.title}`}
           >
             <Trash2 className="w-3 h-3" />
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

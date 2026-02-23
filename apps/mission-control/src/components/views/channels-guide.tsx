@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api-fetch";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -1302,6 +1303,9 @@ export function ChannelsGuidePage() {
 
     return (
         <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="shrink-0 px-6 py-4 border-b border-border/50">
+                <PageDescriptionBanner pageId="channels" />
+            </div>
             {/* Hero Section */}
             <div className="relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5" />

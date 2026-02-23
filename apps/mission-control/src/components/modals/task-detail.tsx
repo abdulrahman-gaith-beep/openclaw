@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Bot, Send, CheckCircle2 } from "lucide-react";
+import { Bot, Send, CheckCircle2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -41,7 +41,19 @@ export function TaskDetailModal({
   const [feedbackNote, setFeedbackNote] = useState("");
   const [approvingDone, setApprovingDone] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [reworkError, setReworkError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const parseApiError = useCallback(async (res: Response): Promise<string> => {
+    try {
+      const body = await res.json();
+      const msg = body?.error ?? body?.errorInfo?.message ?? body?.message;
+      return typeof msg === "string" ? msg : "Request failed";
+    } catch {
+      return res.statusText || "Request failed";
+    }
+  }, []);
 
   const fetchComments = useCallback(async () => {
     try {
@@ -68,15 +80,23 @@ export function TaskDetailModal({
   const addUserComment = async () => {
     if (!newComment.trim() || sendingComment) {return;}
     setSendingComment(true);
+    setCommentError(null);
     try {
-      await fetch("/api/tasks/comments", {
+      const res = await fetch("/api/tasks/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskId: task.id, content: newComment.trim(), workspace_id: task.workspace_id }),
       });
+      if (!res.ok) {
+        const msg = await parseApiError(res);
+        setCommentError(msg);
+        return;
+      }
       setNewComment("");
       await fetchComments();
-    } catch { } finally {
+    } catch (err) {
+      setCommentError(err instanceof Error ? err.message : "Failed to send comment. Please retry.");
+    } finally {
       setSendingComment(false);
     }
   };
@@ -84,17 +104,25 @@ export function TaskDetailModal({
   const requestRework = async () => {
     if (!reworkFeedback.trim() || reworking) {return;}
     setReworking(true);
+    setReworkError(null);
     try {
-      await fetch("/api/tasks/rework", {
+      const res = await fetch("/api/tasks/rework", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskId: task.id, feedback: reworkFeedback.trim() }),
       });
+      if (!res.ok) {
+        const msg = await parseApiError(res);
+        setReworkError(msg);
+        return;
+      }
       setReworkFeedback("");
       setShowRework(false);
       await fetchComments();
       await Promise.resolve(onRefresh());
-    } catch { } finally {
+    } catch (err) {
+      setReworkError(err instanceof Error ? err.message : "Failed to send rework. Please retry.");
+    } finally {
       setReworking(false);
     }
   };
@@ -108,6 +136,7 @@ export function TaskDetailModal({
         body: JSON.stringify({
           agentId: task.assigned_agent_id,
           taskId: task.id,
+          workspace_id: task.workspace_id,
           rating: feedbackRating,
           dimension: "overall",
           note: feedbackNote.trim() || undefined,
@@ -117,7 +146,7 @@ export function TaskDetailModal({
     } catch {
       return false;
     }
-  }, [feedbackNote, feedbackRating, task.assigned_agent_id, task.id]);
+  }, [feedbackNote, feedbackRating, task.assigned_agent_id, task.id, task.workspace_id]);
 
   const approveAndDone = async () => {
     if (approvingDone) {return;}
@@ -158,7 +187,7 @@ export function TaskDetailModal({
               {task.assigned_agent_id && (
                 <button
                   onClick={() => {
-                    window.location.hash = "specialists";
+                    window.location.hash = `specialists?agent=${encodeURIComponent(task.assigned_agent_id)}`;
                     onClose();
                   }}
                   className="transition-opacity hover:opacity-80"
@@ -271,23 +300,46 @@ export function TaskDetailModal({
             )}
           </section>
 
-          <div className="flex gap-2">
-            <input
-              type="text"
-              className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addUserComment()}
-              placeholder="Add a comment..."
-              maxLength={5000}
-            />
-            <Button
-              size="sm"
-              disabled={!newComment.trim() || sendingComment}
-              onClick={addUserComment}
-            >
-              <Send className="w-3 h-3" />
-            </Button>
+          <div className="space-y-1">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                className={`flex-1 rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring ${commentError ? "border-destructive bg-destructive/5" : "border-input bg-background"}`}
+                value={newComment}
+                onChange={(e) => {
+                  setNewComment(e.target.value);
+                  if (commentError) {setCommentError(null);}
+                }}
+                onKeyDown={(e) => e.key === "Enter" && addUserComment()}
+                placeholder="Add a comment..."
+                maxLength={5000}
+                aria-invalid={!!commentError}
+                aria-describedby={commentError ? "comment-error" : undefined}
+              />
+              {commentError ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={sendingComment}
+                  onClick={addUserComment}
+                  title="Retry"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </Button>
+              ) : null}
+              <Button
+                size="sm"
+                disabled={!newComment.trim() || sendingComment}
+                onClick={addUserComment}
+              >
+                <Send className="w-3 h-3" />
+              </Button>
+            </div>
+            {commentError && (
+              <p id="comment-error" className="text-xs text-destructive">
+                {commentError}
+              </p>
+            )}
           </div>
 
           {isReview && (
@@ -314,7 +366,11 @@ export function TaskDetailModal({
                   {feedbackRating}/5
                 </span>
               </div>
+              <label htmlFor="feedback-note" className="sr-only">
+                Optional note to help this specialist improve
+              </label>
               <input
+                id="feedback-note"
                 type="text"
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 value={feedbackNote}
@@ -323,7 +379,9 @@ export function TaskDetailModal({
                 maxLength={2000}
               />
               {feedbackError && (
-                <p className="text-xs text-amber-500">{feedbackError}</p>
+                <p className="text-xs text-amber-500" role="alert" aria-live="polite">
+                  {feedbackError}
+                </p>
               )}
             </div>
           )}
@@ -334,13 +392,23 @@ export function TaskDetailModal({
                 Rework Instructions
               </label>
               <textarea
-                className="min-h-[100px] w-full resize-y rounded-md border border-amber-500/30 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className={`min-h-[100px] w-full resize-y rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 ${reworkError ? "border-destructive bg-destructive/5" : "border-amber-500/30 bg-background"}`}
                 value={reworkFeedback}
-                onChange={(e) => setReworkFeedback(e.target.value)}
+                onChange={(e) => {
+                  setReworkFeedback(e.target.value);
+                  if (reworkError) {setReworkError(null);}
+                }}
                 placeholder="Describe what needs to be changed or improved..."
                 autoFocus
                 maxLength={2000}
+                aria-invalid={!!reworkError}
+                aria-describedby={reworkError ? "rework-error" : undefined}
               />
+              {reworkError && (
+                <p id="rework-error" className="text-xs text-destructive">
+                  {reworkError}
+                </p>
+              )}
               <div className="flex justify-end gap-2">
                 <Button
                   variant="ghost"
@@ -348,10 +416,23 @@ export function TaskDetailModal({
                   onClick={() => {
                     setShowRework(false);
                     setReworkFeedback("");
+                    setReworkError(null);
                   }}
                 >
                   Cancel
                 </Button>
+                {reworkError && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={reworking}
+                    onClick={requestRework}
+                    title="Retry"
+                  >
+                    <RotateCcw className="w-3 h-3 mr-1" />
+                    Retry
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   disabled={!reworkFeedback.trim() || reworking}

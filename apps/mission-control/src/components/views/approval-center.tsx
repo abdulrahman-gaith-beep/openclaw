@@ -33,6 +33,7 @@ import {
   type GatewayConnectionState,
   type GatewayEvent,
 } from "@/lib/hooks/use-gateway-events";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 import {
   approvalCreatedMs,
   approvalDecisionLabel,
@@ -725,6 +726,9 @@ export function ApprovalCenter() {
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="shrink-0 px-6 py-4 border-b border-border/50">
+        <PageDescriptionBanner pageId="approvals" />
+      </div>
       <div className="p-6 border-b border-border bg-card/30">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

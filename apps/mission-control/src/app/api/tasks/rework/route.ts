@@ -10,6 +10,7 @@ import { sanitizeInput } from "@/lib/validation";
 import { retrySendMessageWithFallback } from "@/lib/model-fallback";
 import { parseOrThrow, reworkTaskSchema } from "@/lib/schemas";
 import { buildSpecialistExecutionContext } from "@/lib/specialist-intelligence";
+import { EXECUTION_GUIDANCE } from "@/lib/learning-hub-lessons";
 
 // --- Prompt builders ---
 
@@ -18,6 +19,10 @@ function buildExecutionPreflightBlock(): string {
 - Prefer non-interactive CLI flags (e.g. --yes, --no-input)
 - Pipe through head/tail for potentially long outputs
 - Always check exit codes
+
+## Learning Hub Guidance
+
+${EXECUTION_GUIDANCE}
 `;
 }
 
@@ -83,6 +88,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
       type: "task_rework",
       task_id: taskId,
       agent_id: agentId,
+      workspace_id: task.workspace_id,
       message: `Rework requested for "${task.title}"`,
     });
 

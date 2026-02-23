@@ -1,6 +1,10 @@
 "use client";
 
 import { ReactNode } from "react";
+import { useDashboardLocaleContext } from "@/lib/dashboard-locale-context";
+import { getEmptyState } from "@/lib/dashboard-guide-content";
+import { motion } from "framer-motion";
+import { LESSON_TIPS } from "@/lib/learning-hub-lessons";
 import {
   Inbox,
   Bot,
@@ -20,6 +24,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { fadeInVariants, useReducedMotion } from "@/design-system";
 
 // --- Types ---
 
@@ -38,6 +43,8 @@ interface EmptyStateProps {
     onClick: () => void;
   };
   variant?: "default" | "minimal" | "feature";
+  /** When provided, use localized content from guide. Overrides title, description, tips. */
+  contentKey?: string;
 }
 
 // --- Base Empty State Component ---
@@ -50,12 +57,21 @@ export function EmptyState({
   primaryAction,
   secondaryAction,
   variant = "default",
+  contentKey,
 }: EmptyStateProps) {
+  const { locale, isRtl } = useDashboardLocaleContext();
+  const localized = contentKey ? getEmptyState(locale, contentKey) : undefined;
+  const effectiveTitle = localized?.title ?? title;
+  const effectiveDescription = localized?.description ?? description;
+  const effectiveTips = localized?.tips ?? tips;
+  const reduceMotion = useReducedMotion();
+  const variants = reduceMotion ? { initial: {}, animate: {} } : fadeInVariants;
+
   if (variant === "minimal") {
     return (
-      <div className="text-center py-8 text-muted-foreground">
+      <div className="text-center py-8 text-muted-foreground" dir={isRtl ? "rtl" : undefined}>
         {icon && <div className="mx-auto mb-2 opacity-30">{icon}</div>}
-        <p className="text-sm">{title}</p>
+        <p className="text-sm">{effectiveTitle}</p>
         {primaryAction && (
           <Button
             size="sm"
@@ -72,30 +88,36 @@ export function EmptyState({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-6">
+    <motion.div
+      className="flex flex-col items-center justify-center py-12 px-6"
+      variants={variants}
+      initial="initial"
+      animate="animate"
+      dir={isRtl ? "rtl" : undefined}
+    >
       {/* Icon */}
       {icon && (
-        <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 relative">
+        <div className="w-20 h-20 rounded-2xl glass-2 flex items-center justify-center mb-6 relative">
           <div className="absolute inset-0 rounded-2xl bg-primary/5 animate-pulse" />
           <div className="relative text-primary/40">{icon}</div>
         </div>
       )}
 
       {/* Title & Description */}
-      <h3 className="text-lg font-semibold mb-2 text-center">{title}</h3>
+      <h3 className="text-lg font-semibold mb-2 text-center">{effectiveTitle}</h3>
       <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-        {description}
+        {effectiveDescription}
       </p>
 
       {/* Tips */}
-      {tips && tips.length > 0 && (
-        <div className="bg-muted/50 rounded-lg p-4 mb-6 max-w-md w-full">
+      {effectiveTips && effectiveTips.length > 0 && (
+        <div className="glass-2 rounded-xl p-4 mb-6 max-w-md w-full">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-3">
             <Lightbulb className="w-3.5 h-3.5" />
             Quick Tips
           </div>
           <ul className="space-y-2">
-            {tips.map((tip, index) => (
+            {effectiveTips.map((tip, index) => (
               <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
                 <span className="text-primary mt-0.5">•</span>
                 <span>{tip}</span>
@@ -121,7 +143,7 @@ export function EmptyState({
           )}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -135,9 +157,10 @@ export function EmptyInbox({ onCreateTask }: { onCreateTask: () => void }) {
       description="Tasks you create will appear here first. Create a task to get started, or use the Orchestrator to run multiple tasks in parallel."
       tips={[
         "Press ⌘N to quickly create a new task",
-        "Drag tasks between columns to change their status",
+        ...LESSON_TIPS.createTask,
         "Assign tasks to agents for autonomous work",
       ]}
+      contentKey="inbox"
       primaryAction={{
         label: "Create Task",
         icon: <Plus className="w-4 h-4" />,
@@ -240,14 +263,19 @@ export function EmptySearchResults({
   );
 }
 
+const CREATE_UNSUPPORTED_GUIDANCE =
+  "Agent creation is not supported by the current gateway. To add agents, edit the gateway config file and restart.";
+
 export function EmptyAgents({
   onCreateAgent,
   isConnected,
   onStartGateway,
+  canCreate = false,
 }: {
-  onCreateAgent: () => void;
+  onCreateAgent?: () => void;
   isConnected: boolean;
   onStartGateway?: () => void;
+  canCreate?: boolean;
 }) {
   if (!isConnected) {
     return (
@@ -285,17 +313,29 @@ export function EmptyAgents({
     <EmptyState
       icon={<Bot className="w-10 h-10" />}
       title="No agents created yet"
-      description="Agents are AI workers that can autonomously complete tasks. Create your first agent to start delegating work."
-      tips={[
-        "Give agents specific personas (e.g., 'researcher', 'writer')",
-        "Each agent can work on tasks independently",
-        "Use the Orchestrator for parallel multi-agent workflows",
-      ]}
-      primaryAction={{
-        label: "Create Agent",
-        icon: <Plus className="w-4 h-4" />,
-        onClick: onCreateAgent,
-      }}
+      description={
+        canCreate
+          ? "Agents are AI workers that can autonomously complete tasks. Create your first agent to start delegating work."
+          : CREATE_UNSUPPORTED_GUIDANCE
+      }
+      tips={
+        canCreate
+          ? [
+              "Give agents specific personas (e.g., 'researcher', 'writer')",
+              ...LESSON_TIPS.dispatch,
+            ]
+          : undefined
+      }
+      contentKey={canCreate ? "agents" : undefined}
+      primaryAction={
+        canCreate && onCreateAgent
+          ? {
+              label: "Create Agent",
+              icon: <Plus className="w-4 h-4" />,
+              onClick: onCreateAgent,
+            }
+          : undefined
+      }
     />
   );
 }
@@ -334,8 +374,7 @@ export function EmptyOrchestrator({
       description="Create multiple tasks, assign each to a different agent, and launch them all in parallel. Monitor progress in real-time."
       tips={[
         "Use templates for common workflows",
-        "Assign different agents to different tasks",
-        "Tasks run in parallel for faster completion",
+        ...LESSON_TIPS.dispatch,
       ]}
       primaryAction={{
         label: "Add Task",
@@ -369,7 +408,7 @@ export function EmptyChat({ onStartChat }: { onStartChat?: () => void }) {
       description="Chat with your AI assistant to brainstorm, get help, or delegate tasks. Your conversation history is saved."
       tips={[
         "Ask questions about your tasks",
-        "Request help with research or writing",
+        "Use atomic prompts: one clear goal per message",
         "Use chat to quickly create and assign tasks",
       ]}
       primaryAction={
@@ -391,11 +430,7 @@ export function EmptyLearning() {
       icon={<BookOpen className="w-10 h-10" />}
       title="Welcome to the Learning Hub"
       description="Explore tutorials, best practices, and tips to get the most out of OpenClaw Mission Control and your AI agents."
-      tips={[
-        "Start with the Getting Started guide",
-        "Learn about effective task delegation",
-        "Discover advanced orchestration patterns",
-      ]}
+      tips={[...LESSON_TIPS.learningHub]}
     />
   );
 }

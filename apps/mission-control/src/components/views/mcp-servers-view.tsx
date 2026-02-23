@@ -12,6 +12,7 @@ import {
   TerminalSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 import { Badge } from "@/components/ui/badge";
 
 interface PluginMcpServer {
@@ -138,6 +139,7 @@ export function MCPServersView() {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-4">
+      <PageDescriptionBanner pageId="mcp-servers" />
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">MCP Servers</h1>

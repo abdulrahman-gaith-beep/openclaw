@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 
 type IntegrationService = "github" | "vercel" | "neon" | "render" | "telegram_master";
 
@@ -195,6 +196,7 @@ export function IntegrationsView() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDescriptionBanner pageId="integrations" className="mb-4" />
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">

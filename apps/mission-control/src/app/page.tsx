@@ -1,7 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { CheckCircle2, X, AlertTriangle, Star } from "lucide-react";
+import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  CheckCircle2,
+  X,
+  AlertTriangle,
+  Star,
+  MessageSquare,
+  Bot,
+  BookOpen,
+  Settings,
+  PlusCircle,
+} from "lucide-react";
+import { useReducedMotion } from "@/design-system";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +25,8 @@ import {
 } from "@/components/ui/dialog";
 
 // Layout components
-import { Sidebar, getViewFromHash, type ViewId } from "@/components/layout/sidebar";
+import { Sidebar, getViewFromHash, getTaskFromHash, VALID_VIEWS, type ViewId } from "@/components/layout/sidebar";
+import { getMissionFromHash } from "@/lib/dashboard-views";
 import { Header } from "@/components/layout/header";
 import { LiveTerminal } from "@/components/layout/live-terminal";
 
@@ -26,11 +39,17 @@ import { DispatchModal } from "@/components/modals/dispatch-modal";
 import { TaskDetailModal } from "@/components/modals/task-detail";
 
 // New UX components
+import { GlobalSearchDialog } from "@/components/global-search-dialog";
 import { TaskFilterBar } from "@/components/task-filter-bar";
 import { UndoToast, useUndoKeyboard } from "@/components/undo-toast";
 import { EmptyInbox, EmptySearchResults } from "@/components/empty-states";
 import { StatCards } from "@/components/dashboard/stat-cards";
 import { ViewErrorBoundary } from "@/components/error-boundary";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
+import { HeroSection } from "@/components/ui/hero-section";
+import { BentoGrid, BentoCell } from "@/components/ui/bento-grid";
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { WelcomeBanner } from "@/components/layout/welcome-banner";
 
 // View components — lazy-loaded for code splitting (PERF-H1 / ARCH-M1)
 import dynamic from "next/dynamic";
@@ -56,19 +75,28 @@ const SkillsDashboard = dynamic(() => import("@/components/views/skills-dashboar
 const AllToolsView = dynamic(() => import("@/components/views/all-tools").then(m => ({ default: m.AllToolsView })), { loading: () => <ViewSkeleton variant="grid" /> });
 const PluginsRegistry = dynamic(() => import("@/components/views/plugins-registry").then(m => ({ default: m.PluginsRegistry })), { loading: () => <ViewSkeleton variant="grid" /> });
 const MCPServersView = dynamic(() => import("@/components/views/mcp-servers-view").then(m => ({ default: m.MCPServersView })), { loading: () => <ViewSkeleton variant="grid" /> });
-
+const DashboardGuide = dynamic(() => import("@/components/views/dashboard-guide").then(m => ({ default: m.DashboardGuide })), { loading: () => <ViewSkeleton variant="grid" /> });
+const ActivityView = dynamic(() => import("@/components/views/activity-view"), { loading: () => <ViewSkeleton variant="list" /> });
+const TemplatesView = dynamic(() => import("@/components/views/templates-view").then(m => ({ default: m.TemplatesView })), { loading: () => <ViewSkeleton variant="grid" /> });
+const WorkspacesView = dynamic(() => import("@/components/views/workspaces-view").then(m => ({ default: m.WorkspacesView })), { loading: () => <ViewSkeleton variant="grid" /> });
+const DevicesView = dynamic(() => import("@/components/views/devices-view").then(m => ({ default: m.DevicesView })), { loading: () => <ViewSkeleton variant="list" /> });
+const WorkspaceSettingsView = dynamic(() => import("@/components/views/workspace-settings"), { loading: () => <ViewSkeleton variant="form" /> });
 
 // Hooks
 import { useTasks, type Task } from "@/lib/hooks/use-tasks";
 import { usePolling } from "@/lib/hooks/use-polling";
 import { useGatewayTelemetry } from "@/lib/hooks/use-gateway-telemetry";
+import { usePendingApprovals } from "@/lib/hooks/use-pending-approvals";
 import { useConnectionToast } from "@/lib/hooks/use-connection-toast";
 import { DEFAULT_WORKSPACE } from "@/lib/workspaces";
 import { ProfileProvider, useProfiles } from "@/lib/hooks/use-profiles";
+import { useIsWorkspaceOwner } from "@/lib/hooks/use-workspace-role";
+import { DashboardLocaleProvider } from "@/lib/dashboard-locale-context";
 import { ManageProfilesDialog } from "@/components/modals/manage-profiles";
 import { apiFetch } from "@/lib/api-fetch";
 import { suggestAgentForTask } from "@/lib/agent-registry";
 import { loadCommunityUsecaseFavorites } from "@/lib/community-usecase-favorites";
+import { canMutate } from "@/lib/dashboard-roles";
 
 interface CommunityUsecaseTemplate {
   id: string;
@@ -119,18 +147,48 @@ function buildUsecaseSeed(template: CommunityUsecaseTemplate): CreateTaskSeedDra
   };
 }
 
+function ViewTransition({
+  activeView,
+  children,
+}: {
+  activeView: string;
+  children: ReactNode;
+}) {
+  const reduceMotion = useReducedMotion();
+  const transition = reduceMotion ? { duration: 0 } : { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const };
+  const initial = reduceMotion ? {} : { opacity: 0, y: 8 };
+  const animate = reduceMotion ? {} : { opacity: 1, y: 0 };
+  const exit = reduceMotion ? {} : { opacity: 0, y: -8 };
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={activeView}
+        initial={initial}
+        animate={animate}
+        exit={exit}
+        transition={transition}
+        className="flex flex-col min-h-full"
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 // --- Main Component ---
 
 export default function Dashboard() {
   return (
     <ProfileProvider>
-      <DashboardInner />
+      <DashboardLocaleProvider>
+        <DashboardInner />
+      </DashboardLocaleProvider>
     </ProfileProvider>
   );
 }
 
 function DashboardInner() {
-  const { activeProfile } = useProfiles();
+  const { activeProfile, refreshProfiles } = useProfiles();
   const [manageProfilesOpen, setManageProfilesOpen] = useState(false);
 
   // Derive workspace options dynamically from the active profile's linked workspaces
@@ -158,6 +216,8 @@ function DashboardInner() {
     return validWorkspaceIds[0] || DEFAULT_WORKSPACE;
   }, [activeProfile, validWorkspaceIds, activeWorkspace]);
 
+  const isWorkspaceOwner = useIsWorkspaceOwner(effectiveWorkspace);
+
   useEffect(() => {
     window.localStorage.setItem("mission-control:workspace", effectiveWorkspace);
     const url = new URL(window.location.href);
@@ -171,6 +231,7 @@ function DashboardInner() {
     filteredTasks,
     activity,
     agents,
+    agentsCanCreate,
     gatewayStatus,
     toast,
     // Filters
@@ -209,6 +270,7 @@ function DashboardInner() {
   });
   const gatewayTelemetry = useGatewayTelemetry();
   const liveConnectionState = gatewayTelemetry.connectionState || connectionState;
+  const pendingApprovalsCount = usePendingApprovals();
 
   // Auto-toast on gateway disconnect/reconnect (AA+ UX)
   useConnectionToast(liveConnectionState, showToast);
@@ -249,11 +311,42 @@ function DashboardInner() {
     window.location.hash = view === "board" ? "" : view;
   }, []);
 
+  /** Navigate to a view or settings anchor (e.g. settings-api-keys) or hash (e.g. board?task=id) */
+  const navigateTo = useCallback(
+    (viewOrAnchor: ViewId | string) => {
+      if (typeof viewOrAnchor === "string" && viewOrAnchor.startsWith("settings-")) {
+        setActiveViewState("settings");
+        window.location.hash = viewOrAnchor;
+      } else if (typeof viewOrAnchor === "string" && viewOrAnchor.includes("?")) {
+        const [viewPart] = viewOrAnchor.split("?");
+        const viewId = (VALID_VIEWS as readonly string[]).includes(viewPart) ? viewPart : viewPart.startsWith("settings") ? "settings" : "board";
+        setActiveViewState(viewId as ViewId);
+        window.location.hash = viewOrAnchor;
+      } else {
+        setActiveView(viewOrAnchor as ViewId);
+      }
+    },
+    [setActiveView]
+  );
+
   useEffect(() => {
     const onHashChange = () => setActiveViewState(getViewFromHash());
     onHashChange();
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  // Deep link: #board?task=id — open Task Detail when task id is in URL
+  // Cmd+K to open global search
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   // UI state
@@ -269,6 +362,7 @@ function DashboardInner() {
   const taskDetailTaskIdRef = useRef<string | null>(null);
   const suppressTaskDetailOpenUntilRef = useRef<number>(0);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   // Views that implement their own internal scrolling.
   // (Chat is the main one; others should generally use the shared scroll root.)
   const viewOwnsScroll = activeView === "chat";
@@ -284,6 +378,28 @@ function DashboardInner() {
     suppressTaskDetailOpenUntilRef.current = Date.now() + 350;
     setShowTaskDetail(null);
   }, []);
+
+  // Deep link: #board?task=id — open Task Detail when task id is in URL
+  useEffect(() => {
+    if (activeView !== "board" || showTaskDetail) {return;}
+    const taskId = getTaskFromHash();
+    if (!taskId) {return;}
+    const task = tasks.find((t) => t.id === taskId);
+    if (task) {
+      openTaskDetail(task);
+      // Clear task from URL to avoid re-opening on modal close
+      const url = new URL(window.location.href);
+      const hash = url.hash.replace("#", "");
+      const [base, qs] = hash.includes("?") ? hash.split("?") : [hash, ""];
+      const params = new URLSearchParams(qs);
+      params.delete("task");
+      const newHash = params.toString() ? `${base}?${params}` : base;
+      window.history.replaceState({}, "", `${url.pathname}${url.search}#${newHash || "board"}`);
+    }
+  }, [activeView, tasks, showTaskDetail, openTaskDetail]);
+
+  // Deep link: #missions?mission=id — pass mission id to MissionsView for highlight/expand
+  const missionIdFromHash = activeView === "missions" ? getMissionFromHash() : null;
 
   const openCreateTaskModal = useCallback((seed?: CreateTaskSeedDraft) => {
     if (seed) {
@@ -403,6 +519,15 @@ function DashboardInner() {
     void loadFavoriteQuickActions();
   }, [activeView, showCreateModal, loadFavoriteQuickActions]);
 
+  const dashboardRole = (() => {
+    const pw = activeProfile?.workspaces.find((w) => w.workspace_id === effectiveWorkspace);
+    if (!pw) {return null;}
+    const dr = pw.dashboard_role?.trim();
+    if (dr && ["owner", "admin", "member", "viewer"].includes(dr)) {return dr as "owner" | "admin" | "member" | "viewer";}
+    return pw.role === "owner" ? "owner" : "member";
+  })();
+  const userCanMutate = canMutate(dashboardRole);
+
   return (
     <div className="flex h-[100dvh] min-h-screen overflow-hidden">
       {/* Sidebar Navigation */}
@@ -412,10 +537,11 @@ function DashboardInner() {
         onAgentsClick={fetchAgents}
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
+        dashboardRole={dashboardRole}
       />
 
       {/* Main Content */}
-      <main id="main-content" className="flex-1 flex flex-col min-w-0 relative">
+      <main id="main-content" role="main" className="flex-1 flex flex-col min-w-0 relative">
         {/* Grid pattern background */}
         <div className="absolute inset-0 z-0 opacity-50 pointer-events-none grid-pattern" />
 
@@ -435,6 +561,18 @@ function DashboardInner() {
           showToast={showToast}
           mobileSidebarOpen={mobileSidebarOpen}
           onMobileSidebarToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+          onSearchClick={() => setSearchOpen(true)}
+          isWorkspaceOwner={isWorkspaceOwner ?? true}
+          onNavigateToWorkspaceSettings={() => setActiveView("workspace-settings")}
+          pendingApprovalsCount={pendingApprovalsCount}
+          onNavigateToApprovals={() => setActiveView("approvals")}
+        />
+
+        <GlobalSearchDialog
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          workspaceId={effectiveWorkspace}
+          onNavigate={navigateTo}
         />
 
         {/* Content area */}
@@ -444,16 +582,99 @@ function DashboardInner() {
             className={`flex-1 min-h-0 overscroll-contain ${viewOwnsScroll ? "overflow-hidden" : "overflow-y-auto"
               }`}
           >
+            {/* Optional: welcome when no workspaces; breadcrumbs for context */}
+            {workspaceOptions.length === 0 && (
+              <div className="px-6 pt-3 pb-2 border-b border-border/50 bg-background/30 shrink-0">
+                <WelcomeBanner onManageProfiles={() => setManageProfilesOpen(true)} />
+              </div>
+            )}
+            <div className="px-6 py-2 shrink-0 border-b border-border/30">
+              <Breadcrumbs
+                activeView={activeView}
+                workspaceLabel={workspaceOptions.find((ws) => ws.id === effectiveWorkspace)?.label}
+              />
+            </div>
+            <ViewTransition activeView={activeView}>
             {activeView === "board" && (
               <div className="flex flex-col min-h-full">
-                {/* Stat Cards Strip */}
-                <div className="px-6 py-4 border-b border-border/50 bg-background/30">
-                  <StatCards
+                <div className="px-6 pt-4">
+                  <PageDescriptionBanner pageId="board" />
+                </div>
+                {/* Hero + Stat Cards */}
+                <div className="border-b border-border/50 bg-background/30 backdrop-blur-sm">
+                  <HeroSection
+                    title="Mission Control"
+                    tagline="Orchestrate your AI agents, tasks, and missions from one command center."
+                  />
+                  <div className="px-6 pb-4">
+                    <StatCards
                     tasks={tasks}
                     agents={agents}
                     gatewayConnectionState={liveConnectionState}
                     onNavigate={(view) => setActiveView(view as ViewId)}
                   />
+                  </div>
+                  {/* Bento Quick access */}
+                  <BentoGrid title="Quick access" className="pt-0">
+                    <BentoCell colSpan={1} rowSpan={1}>
+                      <button
+                        type="button"
+                        onClick={() => userCanMutate && openCreateTaskModal()}
+                        disabled={!userCanMutate}
+                        className="w-full h-full flex flex-col items-start justify-center gap-2 text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <PlusCircle className="w-7 h-7 text-primary" />
+                        <span className="font-semibold text-foreground">New task</span>
+                        <span className="text-xs text-muted-foreground">Create a task</span>
+                      </button>
+                    </BentoCell>
+                    <BentoCell colSpan={1} rowSpan={1}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveView("chat")}
+                        className="w-full h-full flex flex-col items-start justify-center gap-2 text-left"
+                      >
+                        <MessageSquare className="w-7 h-7 text-primary" />
+                        <span className="font-semibold text-foreground">Chat</span>
+                        <span className="text-xs text-muted-foreground">Talk to agents</span>
+                      </button>
+                    </BentoCell>
+                    <BentoCell colSpan={1} rowSpan={1}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveView("agents")}
+                        className="w-full h-full flex flex-col items-start justify-center gap-2 text-left"
+                      >
+                        <Bot className="w-7 h-7 text-primary" />
+                        <span className="font-semibold text-foreground">Agents</span>
+                        <span className="text-xs text-muted-foreground">Manage agents</span>
+                      </button>
+                    </BentoCell>
+                    <BentoCell colSpan={1} rowSpan={1}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveView("learn")}
+                        className="w-full h-full flex flex-col items-start justify-center gap-2 text-left"
+                      >
+                        <BookOpen className="w-7 h-7 text-primary" />
+                        <span className="font-semibold text-foreground">Learning Hub</span>
+                        <span className="text-xs text-muted-foreground">Guides & lessons</span>
+                      </button>
+                    </BentoCell>
+                    <BentoCell colSpan={2} rowSpan={1}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveView("settings")}
+                        className="w-full h-full flex flex-col items-start justify-center gap-2 text-left sm:flex-row sm:items-center sm:gap-4"
+                      >
+                        <Settings className="w-7 h-7 text-primary shrink-0" />
+                        <div className="min-w-0">
+                          <span className="font-semibold text-foreground block">Settings</span>
+                          <span className="text-xs text-muted-foreground">Gateway, models, API keys</span>
+                        </div>
+                      </button>
+                    </BentoCell>
+                  </BentoGrid>
                 </div>
                 {(favoriteQuickTemplatesLoading || favoriteQuickTemplates.length > 0) && (
                   <div className="px-6 py-3 border-b border-border/50 bg-background/40">
@@ -482,14 +703,14 @@ function DashboardInner() {
                   </div>
                 )}
                 {/* Task Filter Bar */}
-                <div className="px-6 py-4 border-b border-border/50 bg-background/50 backdrop-blur-sm">
+                <div className="px-6 py-4 border-b border-border/50 glass-2">
                   <TaskFilterBar
                     filters={taskFilters}
                     onFiltersChange={setTaskFilters}
                     agents={agents}
                     taskCount={tasks.length}
                     filteredCount={filteredTasks.length}
-                    onCreateTask={() => openCreateTaskModal()}
+                    onCreateTask={userCanMutate ? () => openCreateTaskModal() : undefined}
                   />
                 </div>
 
@@ -500,15 +721,15 @@ function DashboardInner() {
                     onClearSearch={clearFilters}
                   />
                 ) : tasks.length === 0 ? (
-                  <EmptyInbox onCreateTask={() => openCreateTaskModal()} />
+                  <EmptyInbox onCreateTask={userCanMutate ? () => openCreateTaskModal() : () => {}} />
                 ) : (
                   <KanbanBoard
                     getColumnTasks={getColumnTasks}
-                    onDeleteTask={handleDeleteTask}
-                    onDispatchTask={(task) => setShowDispatchModal(task)}
+                    onDeleteTask={userCanMutate ? handleDeleteTask : () => {}}
+                    onDispatchTask={userCanMutate ? (task) => setShowDispatchModal(task) : () => {}}
                     onViewTask={openTaskDetail}
-                    onMoveTask={moveTask}
-                    onCreateTask={() => openCreateTaskModal()}
+                    onMoveTask={userCanMutate ? moveTask : async () => false}
+                    onCreateTask={userCanMutate ? () => openCreateTaskModal() : () => {}}
                   />
                 )}
               </div>
@@ -518,6 +739,7 @@ function DashboardInner() {
                 <AgentsView
                   status={gatewayStatus}
                   agents={agents}
+                  canCreate={agentsCanCreate}
                   onRefresh={fetchAgents}
                   onStartGateway={handleStartGateway}
                 />
@@ -567,14 +789,55 @@ function DashboardInner() {
                 />
               </ViewErrorBoundary>
             )}
-            {activeView === "missions" && <ViewErrorBoundary key="missions" viewName="Missions"><MissionsView /></ViewErrorBoundary>}
+            {activeView === "activity" && (
+              <ViewErrorBoundary key="activity" viewName="Activity">
+                <ActivityView
+                  workspaceId={effectiveWorkspace}
+                  onOpenTask={(taskId: string) => {
+                    const task = tasks.find((t) => t.id === taskId);
+                    if (task) {openTaskDetail(task);}
+                  }}
+                  onNavigateToMission={() => setActiveView("missions")}
+                />
+              </ViewErrorBoundary>
+            )}
+            {activeView === "templates" && (
+              <ViewErrorBoundary key="templates" viewName="Templates">
+                <TemplatesView
+                  onCreateTask={(seed) => openCreateTaskModal(seed)}
+                  userCanMutate={userCanMutate}
+                />
+              </ViewErrorBoundary>
+            )}
+            {activeView === "workspaces" && (
+              <ViewErrorBoundary key="workspaces" viewName="Workspaces">
+                <WorkspacesView
+                  profileWorkspaces={activeProfile?.workspaces ?? []}
+                  activeWorkspaceId={effectiveWorkspace}
+                  activeProfileId={activeProfile?.id ?? ""}
+                  onWorkspaceChange={setActiveWorkspace}
+                  onRefreshProfiles={refreshProfiles}
+                  isOwner={isWorkspaceOwner ?? false}
+                />
+              </ViewErrorBoundary>
+            )}
+            {activeView === "devices" && (
+              <ViewErrorBoundary key="devices" viewName="Devices">
+                <DevicesView userCanMutate={userCanMutate} />
+              </ViewErrorBoundary>
+            )}
+            {activeView === "missions" && (
+              <ViewErrorBoundary key="missions" viewName="Missions">
+                <MissionsView highlightMissionId={missionIdFromHash ?? undefined} />
+              </ViewErrorBoundary>
+            )}
             {activeView === "integrations" && <ViewErrorBoundary key="integrations" viewName="Integrations"><IntegrationsView /></ViewErrorBoundary>}
             {activeView === "channels" && <ViewErrorBoundary key="channels" viewName="Channels"><ChannelsView /></ViewErrorBoundary>}
             {activeView === "skills" && <ViewErrorBoundary key="skills" viewName="Skills"><SkillsDashboard /></ViewErrorBoundary>}
             {activeView === "plugins" && <ViewErrorBoundary key="plugins" viewName="Plugins"><PluginsRegistry /></ViewErrorBoundary>}
             {activeView === "all-tools" && (
               <ViewErrorBoundary key="all-tools" viewName="All Tools">
-                <AllToolsView onNavigate={setActiveView} />
+                <AllToolsView onNavigate={navigateTo} />
               </ViewErrorBoundary>
             )}
             {activeView === "tools" && <ViewErrorBoundary key="tools" viewName="Tools Playground"><ToolsPlayground /></ViewErrorBoundary>}
@@ -593,10 +856,34 @@ function DashboardInner() {
             {activeView === "approvals" && <ViewErrorBoundary key="approvals" viewName="Approvals"><ApprovalCenter /></ViewErrorBoundary>}
             {activeView === "cron" && <ViewErrorBoundary key="cron" viewName="Schedules"><CronScheduler /></ViewErrorBoundary>}
             {activeView === "logs" && <ViewErrorBoundary key="logs" viewName="Logs"><LogsViewer /></ViewErrorBoundary>}
+            {activeView === "activity" && (
+              <ViewErrorBoundary key="activity" viewName="Activity">
+                <ActivityView
+                  workspaceId={effectiveWorkspace}
+                  onOpenTask={(taskId) => {
+                    const task = tasks.find((t) => t.id === taskId);
+                    if (task) {openTaskDetail(task);}
+                  }}
+                  onNavigateToMission={() => setActiveView("missions")}
+                />
+              </ViewErrorBoundary>
+            )}
+            {activeView === "workspace-settings" && (
+              <ViewErrorBoundary key="workspace-settings" viewName="Workspace Settings">
+                <WorkspaceSettingsView
+                  workspaceId={effectiveWorkspace}
+                  onManageProfiles={() => setManageProfilesOpen(true)}
+                  onWorkspaceDeleted={() => {
+                    setActiveView("board");
+                    fetchTasks();
+                  }}
+                />
+              </ViewErrorBoundary>
+            )}
             {activeView === "settings" && (
               <ViewErrorBoundary key="settings" viewName="Settings">
                 <div className="p-4 sm:p-6">
-                  <SettingsPanel />
+                  <SettingsPanel isOwner={isWorkspaceOwner ?? true} />
                 </div>
               </ViewErrorBoundary>
             )}
@@ -606,15 +893,23 @@ function DashboardInner() {
                 <Orchestrator workspaceId={effectiveWorkspace} />
               </ViewErrorBoundary>
             )}
+            {activeView === "guide" && (
+              <ViewErrorBoundary key="guide" viewName="How to Use">
+                <DashboardGuide />
+              </ViewErrorBoundary>
+            )}
             {activeView === "learn" && (
               <ViewErrorBoundary key="learn" viewName="Learning Hub">
                 <LearningHub
                   workspaceId={effectiveWorkspace}
                   tasks={tasks}
                   onOpenTask={handleOpenLearningHubTask}
+                  showToast={showToast}
+                  onBuildComplete={fetchTasks}
                 />
               </ViewErrorBoundary>
             )}
+            </ViewTransition>
           </div>
 
           {/* Live Terminal Sidebar */}
@@ -683,8 +978,10 @@ function DashboardInner() {
         onCreateTask={() => openCreateTaskModal()}
         gatewayStatus={gatewayStatus}
         taskCount={tasks.length}
-        pendingApprovals={0}
+        pendingApprovals={pendingApprovalsCount}
         workspaceId={effectiveWorkspace}
+        onError={(msg) => showToast(msg, "error")}
+        onTaskCreated={fetchTasks}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -717,6 +1014,8 @@ function DashboardInner() {
       <ManageProfilesDialog
         open={manageProfilesOpen}
         onOpenChange={setManageProfilesOpen}
+        workspaceId={effectiveWorkspace}
+        isOwner={isWorkspaceOwner ?? true}
       />
 
       {/* Undo Toast */}
@@ -731,20 +1030,20 @@ function DashboardInner() {
         <div
           role="status"
           aria-live="polite"
-          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300 ${toast.type === "success"
-            ? "bg-green-600 text-white"
-            : "bg-destructive text-destructive-foreground"
+          className={`fixed bottom-6 right-6 z-50 glass-2 px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300 border ${toast.type === "success"
+            ? "border-green-500/30 bg-green-500/15 text-green-600 dark:text-green-400 dark:bg-green-500/10"
+            : "border-destructive/30 bg-destructive/15 text-destructive dark:bg-destructive/10"
             }`}
         >
           {toast.type === "success" ? (
-            <CheckCircle2 className="w-5 h-5" />
+            <CheckCircle2 className="w-5 h-5 shrink-0" />
           ) : (
-            <AlertTriangle className="w-5 h-5" />
+            <AlertTriangle className="w-5 h-5 shrink-0" />
           )}
           <span className="text-sm font-medium">{toast.message}</span>
           <button
             onClick={clearToast}
-            className="ml-2 hover:opacity-70 transition-opacity"
+            className="ml-2 p-1 rounded-md hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-opacity"
             aria-label="Dismiss notification"
           >
             <X className="w-4 h-4" />

@@ -1,14 +1,19 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { checkCsrf } from "@/lib/csrf";
-import { attachRequestIdHeader, ensureRequestId } from "@/lib/errors";
+import { attachRequestIdHeader, ensureRequestId, apiErrorResponse } from "@/lib/errors";
 import {
   checkRateLimit,
   RateLimitPresets,
   type RateLimitConfig,
 } from "@/lib/rate-limit";
 import { getCurrentRiskConfig } from "@/lib/risk-level";
-import { requireProfileWorkspaceAccess } from "@/lib/profile-context";
+import {
+  requireProfileWorkspaceAccess,
+  requireWorkspaceRole,
+  getRequestProfileId,
+} from "@/lib/profile-context";
+import { getProfileDashboardRole } from "@/lib/db";
 
 export interface ApiGuardOptions {
   /** Apply in-memory rate limiting */
@@ -21,13 +26,30 @@ export interface ApiGuardOptions {
    * Backward-compatible: requests without X-Profile-Id are allowed through.
    */
   requireProfile?: boolean;
+  /**
+   * When set, require the profile's workspace role to be at least this level.
+   * - 'owner-or-shared': any linked profile (default when requireProfile is true).
+   * - 'owner': only profile_workspaces.role = 'owner'.
+   * Uses workspace_id from query or (for POST/PATCH) request body.
+   */
+  requireWorkspaceRole?: "owner" | "owner-or-shared";
+  /**
+   * When true, reject requests from profiles with dashboard_role = 'viewer'.
+   * Use for mutation routes (create, update, delete).
+   */
+  requireCanMutate?: boolean;
+  /**
+   * When true, skip the profile-workspace access check (use for operations like
+   * linking a profile to a workspace where the profile does not yet have access).
+   */
+  skipWorkspaceAccessCheck?: boolean;
 }
 
 export const ApiGuardPresets = {
   read: { rateLimit: RateLimitPresets.standard, requireCsrf: false, requireProfile: true },
-  write: { rateLimit: RateLimitPresets.write, requireCsrf: true, requireProfile: true },
-  llm: { rateLimit: RateLimitPresets.llm, requireCsrf: true, requireProfile: true },
-  expensive: { rateLimit: RateLimitPresets.expensive, requireCsrf: true, requireProfile: true },
+  write: { rateLimit: RateLimitPresets.write, requireCsrf: true, requireProfile: true, requireCanMutate: true },
+  llm: { rateLimit: RateLimitPresets.llm, requireCsrf: true, requireProfile: true, requireCanMutate: true },
+  expensive: { rateLimit: RateLimitPresets.expensive, requireCsrf: true, requireProfile: true, requireCanMutate: true },
 } as const;
 
 const CSRF_ENV_FLAG =
@@ -40,13 +62,25 @@ const CSRF_ENV_FLAG =
 type GuardedHandler = (request: NextRequest) => Promise<Response>;
 
 /**
- * Extract workspace_id from query params (for GET/DELETE) or body cache.
+ * Extract workspace_id from query params (for GET/DELETE) or request body (POST/PATCH).
+ * For POST/PATCH, clones the request to read body so the handler can still read it.
  */
-function extractWorkspaceId(request: NextRequest): string | null {
-  // Try query params first (works for GET / DELETE)
+async function extractWorkspaceId(request: NextRequest): Promise<string | null> {
   const fromQuery = request.nextUrl.searchParams.get("workspace_id");
-  if (fromQuery) {return fromQuery;}
-
+  if (fromQuery) {
+    return fromQuery;
+  }
+  const method = request.method?.toUpperCase();
+  if (method === "POST" || method === "PATCH" || method === "PUT") {
+    try {
+      const cloned = request.clone();
+      const body = (await cloned.json().catch(() => ({}))) as { workspace_id?: string };
+      const id = body?.workspace_id;
+      return typeof id === "string" && id.trim() ? id.trim() : null;
+    } catch {
+      return null;
+    }
+  }
   return null;
 }
 
@@ -91,14 +125,45 @@ export function withApiGuard(
     }
 
     // Profile-workspace authorization
+    const workspaceId = await extractWorkspaceId(request);
     if (options.requireProfile) {
-      const workspaceId = extractWorkspaceId(request);
       const profileError = requireProfileWorkspaceAccess(
         request,
-        workspaceId,
+        options.skipWorkspaceAccessCheck ? null : workspaceId,
         requestId
       );
-      if (profileError) {return profileError;}
+      if (profileError) {
+        return profileError;
+      }
+    }
+
+    // Optional: require workspace role (owner only)
+    if (options.requireWorkspaceRole === "owner") {
+      const roleError = requireWorkspaceRole(
+        request,
+        workspaceId,
+        "owner",
+        requestId
+      );
+      if (roleError) {
+        return roleError;
+      }
+    }
+
+    // Optional: reject viewer role for mutations
+    if (options.requireCanMutate && workspaceId) {
+      const profileId = getRequestProfileId(request);
+      if (profileId) {
+        const dashboardRole = getProfileDashboardRole(profileId, workspaceId);
+        if (dashboardRole === "viewer") {
+          return apiErrorResponse({
+            message: "Viewer role cannot perform this action",
+            status: 403,
+            code: "VIEWER_CANNOT_MUTATE",
+            requestId,
+          });
+        }
+      }
     }
 
     const response = await handler(request);

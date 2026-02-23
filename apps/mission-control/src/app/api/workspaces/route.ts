@@ -17,6 +17,7 @@ import {
   deleteWorkspaceQuerySchema,
   parseOrThrow,
 } from "@/lib/schemas";
+import { isValidWorkspaceId } from "@/lib/workspaces-server";
 import { DEFAULT_WORKSPACE } from "@/lib/workspaces";
 
 export const GET = withApiGuard(async () => {
@@ -109,14 +110,19 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
   } catch (error) {
     return handleApiError(error, "Failed to update workspace");
   }
-}, ApiGuardPresets.write);
+}, { ...ApiGuardPresets.write, requireWorkspaceRole: "owner" });
 
 export const DELETE = withApiGuard(async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
-    const { id } = parseOrThrow(deleteWorkspaceQuerySchema, {
+    const { id, workspace_id } = parseOrThrow(deleteWorkspaceQuerySchema, {
       id: searchParams.get("id"),
+      workspace_id: searchParams.get("workspace_id"),
     });
+
+    if (!isValidWorkspaceId(workspace_id)) {
+      throw new UserError("workspace_id is invalid", 400);
+    }
 
     // Protect the default workspace from deletion
     if (id === DEFAULT_WORKSPACE) {
@@ -135,6 +141,7 @@ export const DELETE = withApiGuard(async (request: NextRequest) => {
     logActivity({
       id: uuidv4(),
       type: "workspace_deleted",
+      workspace_id,
       message: `Workspace "${existing.label}" (${id}) deleted`,
       metadata: { deleted_workspace_id: id },
     });
@@ -143,4 +150,4 @@ export const DELETE = withApiGuard(async (request: NextRequest) => {
   } catch (error) {
     return handleApiError(error, "Failed to delete workspace");
   }
-}, ApiGuardPresets.write);
+}, { ...ApiGuardPresets.write, requireWorkspaceRole: "owner" });

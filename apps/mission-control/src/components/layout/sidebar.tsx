@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { motion } from "framer-motion";
 import {
   LayoutDashboard,
   Bot,
@@ -9,7 +10,6 @@ import {
   Link2,
   Rocket,
   Settings,
-
   Wrench,
   Radio,
   Puzzle,
@@ -24,45 +24,33 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plug,
+  HelpCircle,
+  Activity,
+  LayoutTemplate,
+  Building2,
+  Smartphone,
+  FolderCog,
 } from "lucide-react";
+import { slideUpVariants, staggerContainerVariants, useReducedMotion } from "@/design-system";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useDashboardLocaleContext } from "@/lib/dashboard-locale-context";
+import { getTooltip } from "@/lib/dashboard-guide-content";
+import { canAccessView } from "@/lib/dashboard-roles";
+import type { DashboardRole } from "@/lib/db";
+import {
+  VALID_VIEWS,
+  getViewFromHash,
+  getSpecialistFromHash,
+  getTaskFromHash,
+  getSettingsAnchorFromHash,
+  type ViewId,
+} from "@/lib/dashboard-views";
 
-// --- View routing ---
-export const VALID_VIEWS = [
-  "board",
-  "chat",
-  "orchestrate",
-  "agents",
-  "employees",
-  "specialists",
-  "learn",
-  "all-tools",
-  // Advanced / less-used pages (reachable via All Tools)
-  "missions",
-  "integrations",
-  "channels",
-  "tools",
-  "skills",
-  "plugins",
-  "mcp-servers",
-  "usage",
-  "approvals",
-  "cron",
-  "logs",
-  "settings",
-] as const;
-
-export type ViewId = (typeof VALID_VIEWS)[number];
-
-export function getViewFromHash(): ViewId {
-  if (typeof window === "undefined") {return "board";}
-  const hash = window.location.hash.replace("#", "");
-  return (VALID_VIEWS as readonly string[]).includes(hash) ? (hash as ViewId) : "board";
-}
+export { VALID_VIEWS, getViewFromHash, getSpecialistFromHash, getTaskFromHash, getSettingsAnchorFromHash, type ViewId };
 
 const NAV_ITEMS = [
   // Daily use
@@ -73,11 +61,17 @@ const NAV_ITEMS = [
   { id: "employees" as const, icon: Users, label: "Employees" },
   { id: "specialists" as const, icon: Brain, label: "Specialists" },
   { id: "learn" as const, icon: BookOpen, label: "Learning Hub" },
+  { id: "guide" as const, icon: HelpCircle, label: "How to Use" },
 
   // Directory of everything else
   { id: "all-tools" as const, icon: Wrench, label: "All Tools" },
+  { id: "workspace-settings" as const, icon: FolderCog, label: "Workspace settings" },
 
   // Advanced / less-used pages (not shown directly in sidebar groups)
+  { id: "activity" as const, icon: Activity, label: "Activity" },
+  { id: "templates" as const, icon: LayoutTemplate, label: "Templates" },
+  { id: "workspaces" as const, icon: Building2, label: "Workspaces" },
+  { id: "devices" as const, icon: Smartphone, label: "Devices" },
   { id: "usage" as const, icon: DollarSign, label: "Usage" },
   { id: "logs" as const, icon: FileText, label: "Logs" },
   { id: "approvals" as const, icon: Shield, label: "Approvals" },
@@ -100,8 +94,9 @@ const NAV_GROUPS: Array<{
 }> = [
     { id: "command", label: "Command", views: ["board", "chat", "orchestrate"] },
     { id: "team", label: "Team", views: ["agents", "employees", "specialists"] },
-    { id: "learn", label: "Learn", views: ["learn", "channels"] },
-    { id: "tools", label: "Tools", views: ["all-tools", "plugins"] },
+    { id: "learn", label: "Learn", views: ["learn", "guide", "channels", "templates"] },
+    { id: "tools", label: "Tools", views: ["all-tools", "plugins", "workspaces", "workspace-settings"] },
+    { id: "operations", label: "Operations", views: ["activity", "usage", "logs", "approvals", "cron", "devices"] },
   ];
 
 interface SidebarProps {
@@ -110,6 +105,7 @@ interface SidebarProps {
   onAgentsClick?: () => void;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  dashboardRole?: DashboardRole | null;
 }
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "mc:sidebar-collapsed";
@@ -144,8 +140,10 @@ export function Sidebar({
   onViewChange,
   onAgentsClick,
   mobileOpen,
-  onMobileClose
+  onMobileClose,
+  dashboardRole = null,
 }: SidebarProps) {
+  const { locale } = useDashboardLocaleContext();
   const collapsed = useSyncExternalStore(
     subscribeToSidebarCollapsed,
     getSidebarCollapsedSnapshot,
@@ -161,6 +159,10 @@ export function Sidebar({
   };
 
   const itemsById = new Map(NAV_ITEMS.map((item) => [item.id, item]));
+  const reduceMotion = useReducedMotion();
+  const noMotion = { initial: {}, animate: {} };
+  const containerVariants = reduceMotion ? noMotion : staggerContainerVariants;
+  const itemVariants = reduceMotion ? noMotion : slideUpVariants;
 
   const renderNavButton = (viewId: NavItemId) => {
     const item = itemsById.get(viewId);
@@ -198,16 +200,16 @@ export function Sidebar({
       </button>
     );
 
-    if (!collapsed) {return button;}
-
-    return (
+    const tooltipText = getTooltip(locale, item.id);
+    const wrapped = (
       <Tooltip key={item.id}>
         <TooltipTrigger asChild>{button}</TooltipTrigger>
         <TooltipContent side="right">
-          <p>{item.label}</p>
+          <p>{tooltipText}</p>
         </TooltipContent>
       </Tooltip>
     );
+    return wrapped;
   };
 
   return (
@@ -220,8 +222,11 @@ export function Sidebar({
         />
       )}
 
-      <aside
-        className={`fixed md:relative inset-y-0 left-0 flex flex-col py-4 border-r border-border bg-card/95 backdrop-blur z-50 shrink-0 transition-all duration-300 h-[100dvh] min-h-0 overflow-hidden ${collapsed ? "w-16 items-center" : "w-56 px-2"
+      <motion.aside
+        initial={reduceMotion ? false : { opacity: 0, x: -8 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        className={`fixed md:relative inset-y-0 left-0 flex flex-col py-4 border-r border-border glass-2 z-50 shrink-0 transition-all duration-300 h-[100dvh] min-h-0 overflow-hidden ${collapsed ? "w-16 items-center" : "w-56 px-2"
           } ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
         <div
@@ -245,30 +250,40 @@ export function Sidebar({
           </button>
         </div>
 
-        <nav
+        <motion.nav
           aria-label="Main navigation"
+          variants={containerVariants}
+          initial="initial"
+          animate="animate"
           className={`flex-1 min-h-0 flex flex-col gap-4 w-full overflow-y-auto overscroll-contain ${collapsed ? "items-center" : ""
             }`}
         >
           {NAV_GROUPS.map((group) => (
-            <div key={group.id} className={`w-full ${collapsed ? "flex flex-col gap-2 items-center" : "px-1"}`}>
+            <motion.div
+              key={group.id}
+              variants={itemVariants}
+              className={`w-full ${collapsed ? "flex flex-col gap-2 items-center" : "px-1"}`}
+            >
               {!collapsed && (
                 <p className="px-2 mb-1 text-[10px] uppercase tracking-wider text-muted-foreground/80 font-semibold">
                   {group.label}
                 </p>
               )}
               <div className={`flex flex-col gap-2 ${collapsed ? "items-center w-full" : ""}`}>
-                {group.views.map((viewId) => (
-                  <div key={viewId} className={collapsed ? "w-10" : "w-full"}>
-                    {renderNavButton(viewId)}
-                  </div>
-                ))}
+                {group.views
+                  .filter((viewId) => canAccessView(dashboardRole ?? null, viewId))
+                  .map((viewId) => (
+                    <div key={viewId} className={collapsed ? "w-10" : "w-full"}>
+                      {renderNavButton(viewId)}
+                    </div>
+                  ))}
               </div>
-            </div>
+            </motion.div>
           ))}
-        </nav>
+        </motion.nav>
 
         <div className={`flex flex-col gap-3 w-full ${collapsed ? "items-center" : "px-2"}`}>
+          {canAccessView(dashboardRole ?? null, "settings") && (
           <div className={collapsed ? "w-10" : "w-full"}>
             {collapsed ? (
               <Tooltip>
@@ -308,11 +323,12 @@ export function Sidebar({
               </button>
             )}
           </div>
+          )}
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary border border-primary/30 mx-auto">
             MC
           </div>
         </div>
-      </aside>
+      </motion.aside>
     </>
   );
 }

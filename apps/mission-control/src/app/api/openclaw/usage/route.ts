@@ -41,6 +41,10 @@ export const GET = withApiGuard(async (request: NextRequest) => {
       normalizedPeriod: period,
       supportsHistoricalBreakdown: hasDaily,
       fetchedAt: new Date().toISOString(),
+      /** Gateway usage.status has no period params; always returns current provider usage. */
+      usagePeriodSupported: false,
+      /** Gateway usage.cost accepts days (and startDate/endDate); period filtering applies. */
+      costPeriodSupported: true,
     });
   } catch (error) {
     if (isGatewayUnavailableError(error)) {
@@ -52,6 +56,8 @@ export const GET = withApiGuard(async (request: NextRequest) => {
         supportsHistoricalBreakdown: false,
         fetchedAt: new Date().toISOString(),
         degraded: true,
+        usagePeriodSupported: false,
+        costPeriodSupported: false,
         warning:
           "Gateway is unavailable, so live usage data is temporarily unavailable.",
       });

@@ -80,6 +80,7 @@ export function useTasks(workspaceId: string = DEFAULT_WORKSPACE) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [agentsCanCreate, setAgentsCanCreate] = useState(false);
   const [gatewayStatus, setGatewayStatus] = useState<GatewayStatus>({
     connected: false,
     agentCount: 0,
@@ -129,6 +130,7 @@ export function useTasks(workspaceId: string = DEFAULT_WORKSPACE) {
       const res = await apiFetch("/api/agents");
       const data = await res.json();
       setAgents(data.agents || []);
+      setAgentsCanCreate(data.canCreate === true);
     } catch { /* retry */ }
   }, []);
 
@@ -341,6 +343,7 @@ export function useTasks(workspaceId: string = DEFAULT_WORKSPACE) {
     filteredTasks,
     activity,
     agents,
+    agentsCanCreate,
     gatewayStatus,
     toast,
     // Filter state

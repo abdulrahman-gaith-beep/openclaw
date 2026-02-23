@@ -118,7 +118,7 @@ export function IntegrationsSection() {
 
     return (
         <SettingsSection
-            id="integrations"
+            id="settings-integrations"
             icon={<Link2 className="w-5 h-5" />}
             title="Integrations"
             description="Connect external services for deployments and infrastructure"

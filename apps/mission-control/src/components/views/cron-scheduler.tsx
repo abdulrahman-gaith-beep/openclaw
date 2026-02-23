@@ -13,8 +13,11 @@ import {
   Bot,
   ChevronDown,
   ChevronUp,
+  AlertCircle,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -142,6 +145,21 @@ function cronToHuman(cron: string): string {
   return cron;
 }
 
+/** Parse error message from API response body (4xx/5xx). */
+async function parseApiError(res: Response): Promise<string> {
+  try {
+    const body = await res.json();
+    if (typeof body?.error === "string") {return body.error;}
+    if (typeof body?.errorInfo?.message === "string") {return body.errorInfo.message;}
+    if (typeof body?.message === "string") {return body.message;}
+  } catch {
+    // Response may not be JSON
+  }
+  return res.status >= 500
+    ? "Server error. Please try again later."
+    : `Request failed (${res.status})`;
+}
+
 function timeAgo(dateStr: string | undefined): string {
   if (!dateStr) {return "Never";}
   const date = new Date(dateStr);
@@ -168,6 +186,7 @@ export function CronScheduler() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; prompt: string } | null>(null);
   const [runHistory, setRunHistory] = useState<Record<string, CronRun[]>>({});
   const [loadingRuns, setLoadingRuns] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<{ message: string; action: string } | null>(null);
 
   // Create form state
   const [newPrompt, setNewPrompt] = useState("");
@@ -260,8 +279,9 @@ export function CronScheduler() {
   const createJob = async () => {
     if (!newPrompt.trim()) {return;}
     setCreating(true);
+    setActionError(null);
     try {
-      await fetch("/api/openclaw/cron", {
+      const res = await fetch("/api/openclaw/cron", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -272,9 +292,19 @@ export function CronScheduler() {
           enabled: true,
         }),
       });
+      if (!res.ok) {
+        const message = await parseApiError(res);
+        setActionError({ message, action: "create" });
+        return;
+      }
       setNewPrompt("");
       setShowCreate(false);
       await fetchJobs();
+    } catch (err) {
+      setActionError({
+        message: err instanceof Error ? err.message : "Network error. Please try again.",
+        action: "create",
+      });
     } finally {
       setCreating(false);
     }
@@ -282,13 +312,24 @@ export function CronScheduler() {
 
   const toggleJob = async (id: string, enabled: boolean) => {
     setActionLoading(id);
+    setActionError(null);
     try {
-      await fetch("/api/openclaw/cron", {
+      const res = await fetch("/api/openclaw/cron", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "update", id, enabled: !enabled }),
       });
+      if (!res.ok) {
+        const message = await parseApiError(res);
+        setActionError({ message, action: "update" });
+        return;
+      }
       await fetchJobs();
+    } catch (err) {
+      setActionError({
+        message: err instanceof Error ? err.message : "Network error. Please try again.",
+        action: "update",
+      });
     } finally {
       setActionLoading(null);
     }
@@ -296,27 +337,51 @@ export function CronScheduler() {
 
   const runNow = async (id: string) => {
     setActionLoading(id);
+    setActionError(null);
     try {
-      await fetch("/api/openclaw/cron", {
+      const res = await fetch("/api/openclaw/cron", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "run", id, mode: "force" }),
       });
+      if (!res.ok) {
+        const message = await parseApiError(res);
+        setActionError({ message, action: "run" });
+        return;
+      }
       await fetchJobs();
+    } catch (err) {
+      setActionError({
+        message: err instanceof Error ? err.message : "Network error. Please try again.",
+        action: "run",
+      });
     } finally {
       setActionLoading(null);
     }
   };
 
-  const removeJob = async (id: string) => {
+  const removeJob = async (id: string): Promise<boolean> => {
     setActionLoading(id);
+    setActionError(null);
     try {
-      await fetch("/api/openclaw/cron", {
+      const res = await fetch("/api/openclaw/cron", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "remove", id }),
       });
+      if (!res.ok) {
+        const message = await parseApiError(res);
+        setActionError({ message, action: "remove" });
+        return false;
+      }
       await fetchJobs();
+      return true;
+    } catch (err) {
+      setActionError({
+        message: err instanceof Error ? err.message : "Network error. Please try again.",
+        action: "remove",
+      });
+      return false;
     } finally {
       setActionLoading(null);
     }
@@ -324,6 +389,9 @@ export function CronScheduler() {
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="shrink-0 px-6 py-4 border-b border-border/50">
+        <PageDescriptionBanner pageId="cron" />
+      </div>
       {/* Header */}
       <div className="p-6 border-b border-border bg-card/30">
         <div className="flex items-center justify-between">
@@ -349,6 +417,25 @@ export function CronScheduler() {
           </div>
         </div>
       </div>
+
+      {/* Action error banner — visible on create/update/run/remove failure */}
+      {actionError && (
+        <div className="mx-6 mt-4 flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span className="flex-1">
+            <span className="font-medium capitalize">{actionError.action}:</span>{" "}
+            {actionError.message}
+          </span>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            className="shrink-0 rounded p-1 hover:bg-red-500/20 transition-colors"
+            aria-label="Dismiss error"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       <ScrollArea className="flex-1 p-6">
         {loading ? (
@@ -551,6 +638,12 @@ export function CronScheduler() {
             <DialogDescription>
               Are you sure you want to delete the scheduled task &quot;{deleteConfirm?.prompt}&quot;? This cannot be undone.
             </DialogDescription>
+            {actionError?.action === "remove" && (
+              <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300 mt-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{actionError.message}</span>
+              </div>
+            )}
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
@@ -560,8 +653,8 @@ export function CronScheduler() {
               variant="destructive"
               onClick={async () => {
                 if (deleteConfirm) {
-                  await removeJob(deleteConfirm.id);
-                  setDeleteConfirm(null);
+                  const ok = await removeJob(deleteConfirm.id);
+                  if (ok) {setDeleteConfirm(null);}
                 }
               }}
             >
@@ -582,6 +675,12 @@ export function CronScheduler() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
+            {actionError?.action === "create" && (
+              <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{actionError.message}</span>
+              </div>
+            )}
             {/* Prompt */}
             <div>
               <label className="block text-sm font-medium mb-1.5">

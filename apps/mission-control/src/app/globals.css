@@ -59,6 +59,18 @@
   --shadow-glow: 0 0 20px oklch(0.58 0.2 260 / 0.15), 0 0 40px oklch(0.58 0.2 260 / 0.05);
   --shadow-glow-sm: 0 0 10px oklch(0.58 0.2 260 / 0.1);
   --shadow-inner-glow: inset 0 1px 0 oklch(1 0 0 / 0.5);
+
+  /* 2026 Design System: Glassmorphism 2.0 */
+  --glass-blur: 20px;
+  --glass-saturate: 180%;
+  --glass-bg: rgba(255, 255, 255, 0.12);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-radius: 1rem;
+  --glass-radius-xl: 1.5rem;
+
+  /* Bento / hero */
+  --bento-radius: 1.25rem;
+  --hero-heading-size: clamp(2.5rem, 5vw + 1rem, 5rem);
 }
 
 /* ===== Dark mode ===== */
@@ -114,6 +126,10 @@
   --shadow-glow: 0 0 30px oklch(0.65 0.22 260 / 0.25), 0 0 60px oklch(0.65 0.22 260 / 0.1);
   --shadow-glow-sm: 0 0 15px oklch(0.65 0.22 260 / 0.15);
   --shadow-inner-glow: inset 0 1px 0 oklch(1 0 0 / 0.05);
+
+  /* 2026 Glass 2.0 dark */
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
 /* ===== Theme mapping ===== */
@@ -263,6 +279,42 @@
   scrollbar-color: oklch(0.58 0.2 260 / 0.4) transparent;
 }
 
+/* ===== Skip to content (WCAG 2.4.1) ===== */
+.skip-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 /* ===== Enhanced Focus States ===== */
 @layer base {
 
@@ -333,6 +385,116 @@
 .dark .glass-card {
   background: oklch(0.18 0.025 252 / 0.5);
   border: 1px solid oklch(1 0 0 / 0.05);
+}
+
+/* 2026 Hero: animated gradient mesh (CSS-only) */
+.hero-gradient-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 70% 0%, oklch(0.58 0.2 260 / 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 20% 80%, oklch(0.65 0.22 280 / 0.08) 0%, transparent 50%);
+  animation: hero-gradient-shift 15s ease-in-out infinite;
+}
+
+.dark .hero-gradient-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 70% 0%, oklch(0.65 0.22 260 / 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 20% 80%, oklch(0.7 0.2 280 / 0.1) 0%, transparent 50%);
+}
+
+/* Hero headline: fluid type + optional gradient shift (respects reduced motion) */
+.hero-heading {
+  letter-spacing: -0.02em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-heading {
+    animation: hero-gradient-text 8s ease-in-out infinite;
+  }
+}
+
+@keyframes hero-gradient-text {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes hero-gradient-shift {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+/* 2026 Glassmorphism 2.0 — stronger blur, semi-transparent border */
+.glass-2 {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+  box-shadow: var(--shadow-md), var(--shadow-inner-glow);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-2:hover {
+  box-shadow: var(--shadow-lg), var(--shadow-glow-sm);
+}
+
+.glass-2:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-lg), var(--shadow-glow-sm), 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+}
+
+.dark .glass-2 {
+  box-shadow: var(--shadow-md), inset 0 1px 0 oklch(1 0 0 / 0.03);
+}
+
+.dark .glass-2:hover {
+  box-shadow: var(--shadow-lg), var(--shadow-glow-sm);
+}
+
+/* Skeleton shimmer overlay (disabled when prefers-reduced-motion) */
+.skeleton-shimmer {
+  position: relative;
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    oklch(1 0 0 / 0.04) 45%,
+    oklch(1 0 0 / 0.08) 50%,
+    oklch(1 0 0 / 0.04) 55%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.dark .skeleton-shimmer::after {
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    oklch(1 0 0 / 0.03) 45%,
+    oklch(1 0 0 / 0.06) 50%,
+    oklch(1 0 0 / 0.03) 55%,
+    transparent 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* ===== Glow Effects ===== */

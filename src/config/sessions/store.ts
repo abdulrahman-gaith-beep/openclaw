@@ -21,9 +21,45 @@ import { getFileMtimeMs, isCacheEnabled, resolveCacheTtlMs } from "../cache-util
 import { loadConfig } from "../config.js";
 import type { SessionMaintenanceConfig, SessionMaintenanceMode } from "../types.base.js";
 import { deriveSessionMetaPatch } from "./metadata.js";
+import {
+  deriveAgentIdFromStorePath,
+  loadSessionsFromSqlite,
+  saveSessionsToSqlite,
+} from "./store-sqlite.js";
 import { mergeSessionEntry, type SessionEntry } from "./types.js";
 
 const log = createSubsystemLogger("sessions/store");
+
+/**
+ * SQLite is the default source for session metadata (~/.openclaw/chat.db).
+ * Set OPENCLAW_SESSION_STORE_SQLITE=0, false, or no to use JSON-only (legacy).
+ */
+function isSessionStoreSqliteEnabled(): boolean {
+  const v = process.env.OPENCLAW_SESSION_STORE_SQLITE;
+  if (v === undefined || v === "") {
+    return true;
+  }
+  const lower = String(v).trim().toLowerCase();
+  if (lower === "0" || lower === "false" || lower === "no") {
+    return false;
+  }
+  return lower === "1" || lower === "true" || lower === "yes";
+}
+
+function dualWriteToSqliteIfEnabled(storePath: string, store: Record<string, SessionEntry>): void {
+  if (!isSessionStoreSqliteEnabled()) {
+    return;
+  }
+  try {
+    const agentId = deriveAgentIdFromStorePath(storePath);
+    saveSessionsToSqlite(agentId, storePath, store);
+  } catch (err) {
+    log.warn("SQLite dual-write failed", {
+      storePath,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
 
 // ============================================================================
 // Session Store Cache with TTL Support
@@ -145,6 +181,31 @@ type LoadSessionStoreOptions = {
   skipCache?: boolean;
 };
 
+function applySessionStoreMigrations(store: Record<string, SessionEntry>): void {
+  for (const entry of Object.values(store)) {
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+    const rec = entry as unknown as Record<string, unknown>;
+    if (typeof rec.channel !== "string" && typeof rec.provider === "string") {
+      rec.channel = rec.provider;
+      delete rec.provider;
+    }
+    if (typeof rec.lastChannel !== "string" && typeof rec.lastProvider === "string") {
+      rec.lastChannel = rec.lastProvider;
+      delete rec.lastProvider;
+    }
+
+    // Best-effort migration: legacy `room` field → `groupChannel` (keep value, prune old key).
+    if (typeof rec.groupChannel !== "string" && typeof rec.room === "string") {
+      rec.groupChannel = rec.room;
+      delete rec.room;
+    } else if ("room" in rec) {
+      delete rec.room;
+    }
+  }
+}
+
 export function loadSessionStore(
   storePath: string,
   opts: LoadSessionStoreOptions = {},
@@ -163,6 +224,33 @@ export function loadSessionStore(
   }
 
   // Cache miss or disabled - load from disk.
+  // When OPENCLAW_SESSION_STORE_SQLITE=1, try SQLite first; fall back to JSON if empty or error.
+  if (isSessionStoreSqliteEnabled()) {
+    try {
+      const agentId = deriveAgentIdFromStorePath(storePath);
+      const sqliteStore = loadSessionsFromSqlite(agentId, storePath);
+      if (Object.keys(sqliteStore).length > 0) {
+        let mtimeMs: number | undefined = getFileMtimeMs(storePath);
+        applySessionStoreMigrations(sqliteStore);
+        if (!opts.skipCache && isSessionStoreCacheEnabled()) {
+          SESSION_STORE_CACHE.set(storePath, {
+            store: structuredClone(sqliteStore),
+            loadedAt: Date.now(),
+            storePath,
+            mtimeMs,
+          });
+        }
+        return structuredClone(sqliteStore);
+      }
+    } catch (err) {
+      log.debug("SQLite session load failed, falling back to JSON", {
+        storePath,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // Load from JSON (default or fallback when SQLite empty/error).
   // Retry up to 3 times when the file is empty or unparseable.  On Windows the
   // temp-file + rename write is not fully atomic: a concurrent reader can briefly
   // observe a 0-byte file (between truncate and write) or a stale/locked state.
@@ -196,29 +284,7 @@ export function loadSessionStore(
     }
   }
 
-  // Best-effort migration: message provider → channel naming.
-  for (const entry of Object.values(store)) {
-    if (!entry || typeof entry !== "object") {
-      continue;
-    }
-    const rec = entry as unknown as Record<string, unknown>;
-    if (typeof rec.channel !== "string" && typeof rec.provider === "string") {
-      rec.channel = rec.provider;
-      delete rec.provider;
-    }
-    if (typeof rec.lastChannel !== "string" && typeof rec.lastProvider === "string") {
-      rec.lastChannel = rec.lastProvider;
-      delete rec.lastProvider;
-    }
-
-    // Best-effort migration: legacy `room` field → `groupChannel` (keep value, prune old key).
-    if (typeof rec.groupChannel !== "string" && typeof rec.room === "string") {
-      rec.groupChannel = rec.room;
-      delete rec.room;
-    } else if ("room" in rec) {
-      delete rec.room;
-    }
-  }
+  applySessionStoreMigrations(store);
 
   // Cache the result if caching is enabled
   if (!opts.skipCache && isSessionStoreCacheEnabled()) {
@@ -611,6 +677,7 @@ async function saveSessionStoreUnlocked(
     } finally {
       await fs.promises.rm(tmp, { force: true }).catch(() => undefined);
     }
+    dualWriteToSqliteIfEnabled(storePath, store);
     return;
   }
 
@@ -620,6 +687,7 @@ async function saveSessionStoreUnlocked(
     await fs.promises.rename(tmp, storePath);
     // Ensure permissions are set even if rename loses them
     await fs.promises.chmod(storePath, 0o600);
+    dualWriteToSqliteIfEnabled(storePath, store);
   } catch (err) {
     const code =
       err && typeof err === "object" && "code" in err
@@ -633,6 +701,7 @@ async function saveSessionStoreUnlocked(
         await fs.promises.mkdir(path.dirname(storePath), { recursive: true });
         await fs.promises.writeFile(storePath, json, { mode: 0o600, encoding: "utf-8" });
         await fs.promises.chmod(storePath, 0o600);
+        dualWriteToSqliteIfEnabled(storePath, store);
       } catch (err2) {
         const code2 =
           err2 && typeof err2 === "object" && "code" in err2

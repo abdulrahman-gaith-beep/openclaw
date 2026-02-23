@@ -24,6 +24,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useDashboardLocaleContext } from "@/lib/dashboard-locale-context";
+import { getTooltip } from "@/lib/dashboard-guide-content";
 
 // --- Types ---
 
@@ -88,6 +95,7 @@ export function TaskFilterBar({
   filteredCount,
   onCreateTask,
 }: TaskFilterBarProps) {
+  const { locale } = useDashboardLocaleContext();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -310,14 +318,21 @@ export function TaskFilterBar({
 
         {/* New Task CTA */}
         {onCreateTask && (
-          <Button
-            size="sm"
-            onClick={onCreateTask}
-            className="h-9 gap-1.5 ml-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all"
-          >
-            <Plus className="h-4 w-4" />
-            New Task
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                onClick={onCreateTask}
+                className="h-9 gap-1.5 ml-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all"
+              >
+                <Plus className="h-4 w-4" />
+                New Task
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{getTooltip(locale, "createTask")}</p>
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
 

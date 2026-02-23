@@ -1,20 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Bot, Plus, Wifi, Monitor, Globe, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { EmptyAgents } from "@/components/empty-states";
 import type { GatewayStatus, Agent } from "@/lib/hooks/use-tasks";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
+import { staggerContainerVariants, glassCardVariants, useReducedMotion } from "@/design-system";
 
 interface AgentsViewProps {
   status: GatewayStatus;
   agents: Agent[];
+  canCreate?: boolean;
   onRefresh: () => void;
   onStartGateway?: () => void;
 }
 
-export function AgentsView({ status, agents, onRefresh, onStartGateway }: AgentsViewProps) {
+const CREATE_UNSUPPORTED_GUIDANCE =
+  "Agent creation is not supported by the current gateway. To add agents, edit the gateway config file and restart.";
+
+export function AgentsView({ status, agents, canCreate = false, onRefresh, onStartGateway }: AgentsViewProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newId, setNewId] = useState("");
@@ -122,11 +129,17 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
     await loadFile(editingAgent.id, fileName);
   };
 
+  const reduceMotion = useReducedMotion();
+  const noMotion = { initial: {}, animate: {} };
+  const containerVariants = reduceMotion ? noMotion : staggerContainerVariants;
+  const cardVariants = reduceMotion ? noMotion : glassCardVariants;
+
   if (!status.connected) {
     return (
       <EmptyAgents
         isConnected={false}
-        onCreateAgent={() => setShowCreate(true)}
+        canCreate={canCreate}
+        onCreateAgent={canCreate ? () => setShowCreate(true) : undefined}
         onStartGateway={onStartGateway}
       />
     );
@@ -138,40 +151,47 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
       <div className="p-6">
         <EmptyAgents
           isConnected={true}
-          onCreateAgent={() => setShowCreate(true)}
+          canCreate={canCreate}
+          onCreateAgent={canCreate ? () => setShowCreate(true) : undefined}
         />
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <motion.div
+      className="p-4 sm:p-6 space-y-4 sm:space-y-6 min-w-0 overflow-x-hidden"
+      variants={containerVariants}
+      initial="initial"
+      animate="animate"
+    >
+      <PageDescriptionBanner pageId="agents" className="mb-4" />
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-lg p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <motion.div variants={cardVariants} className="glass-2 rounded-xl p-4">
           <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
             Total Agents
           </div>
           <div className="text-2xl font-bold text-primary">{agents.length}</div>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4">
+        </motion.div>
+        <motion.div variants={cardVariants} className="glass-2 rounded-xl p-4">
           <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
             Cron Jobs
           </div>
           <div className="text-2xl font-bold text-primary">{status.cronJobCount}</div>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4">
+        </motion.div>
+        <motion.div variants={cardVariants} className="glass-2 rounded-xl p-4">
           <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
             Gateway
           </div>
           <div className="text-lg font-bold text-green-500 flex items-center gap-2">
             <Wifi className="w-4 h-4" /> Online
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Telegram Control Callout */}
-      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+      <motion.div variants={cardVariants} className="glass-2 border border-primary/20 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="flex-shrink-0 bg-primary/10 p-2 rounded-full">
           <Bot className="w-5 h-5 text-primary" />
         </div>
@@ -181,22 +201,29 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
             Bind the <code className="bg-muted px-1 py-0.5 rounded text-[10px]">mission_control_ops</code> skill to your Telegram Master Bot to manage specialists, check system status, and deploy tasks directly via chat commands (e.g. <code className="bg-muted px-1 py-0.5 rounded text-[10px]">/tasks</code>, <code className="bg-muted px-1 py-0.5 rounded text-[10px]">/status</code>).
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { window.location.hash = "integrations"; }}>
+        <Button variant="outline" size="sm" onClick={() => { window.location.hash = "integrations"; }} className="min-h-11 shrink-0">
           Configure Integrations
         </Button>
-      </div>
+      </motion.div>
 
-      {/* Create button and Channel Nav */}
-      <div className="flex items-center justify-between">
-        <Button
-          onClick={() => setShowCreate(!showCreate)}
-          variant={showCreate ? "outline" : "default"}
-        >
-          {showCreate ? "Cancel" : <><Plus className="w-4 h-4 mr-1" /> Create Agent</>}
-        </Button>
+      {/* Create button (only when supported) or guidance */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {canCreate ? (
+          <Button
+            onClick={() => setShowCreate(!showCreate)}
+            variant={showCreate ? "outline" : "default"}
+          >
+            {showCreate ? "Cancel" : <><Plus className="w-4 h-4 mr-1" /> Create Agent</>}
+          </Button>
+        ) : (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-2.5 text-sm text-amber-700 dark:text-amber-400">
+            {CREATE_UNSUPPORTED_GUIDANCE}
+          </div>
+        )}
         <button
           onClick={() => { window.location.hash = "channels"; }}
-          className="text-sm text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1.5 transition-colors"
+          className="text-sm text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1.5 transition-colors min-h-11 min-w-11 px-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          aria-label="Manage Channels"
         >
           <Globe className="h-4 w-4" />
           Manage Channels
@@ -204,13 +231,18 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
         </button>
       </div>
 
-      {/* Create form */}
-      {showCreate && (
-        <div className="bg-card border border-primary/20 rounded-lg p-6 space-y-4">
+      {/* Create form (only when supported) */}
+      {canCreate && showCreate && (
+        <motion.div
+          variants={cardVariants}
+          className="glass-2 border border-primary/20 rounded-xl p-6 space-y-4"
+          initial="initial"
+          animate="animate"
+        >
           <div className="space-y-2">
             <label className="text-sm font-medium">Agent ID</label>
             <input
-              className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full px-3 py-2 min-h-11 rounded-md border border-input bg-background text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               value={newId}
               onChange={(e) => setNewId(e.target.value)}
               placeholder="e.g., researcher, writer, reviewer"
@@ -220,7 +252,7 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
           <div className="space-y-2">
             <label className="text-sm font-medium">Identity / Persona (SOUL.md)</label>
             <textarea
-              className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring min-h-[100px] resize-y"
+              className="w-full px-3 py-2 min-h-11 rounded-md border border-input bg-background text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[100px] resize-y"
               value={newIdentity}
               onChange={(e) => setNewIdentity(e.target.value)}
               placeholder="You are a skilled researcher who finds and summarizes information..."
@@ -237,19 +269,29 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
                 : `❌ ${createResult.replace("error:", "")}`}
             </div>
           )}
-          <Button onClick={handleCreate} disabled={creating}>
+          <Button onClick={handleCreate} disabled={creating} className="min-h-11">
             {creating ? "Creating..." : "Create Agent in OpenClaw"}
           </Button>
-        </div>
+        </motion.div>
       )}
 
       {/* Agent grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {agents.map((agent) => (
-          <div
+          <motion.div
             key={agent.id}
-            className="bg-card border border-border rounded-lg p-5 hover:border-primary/50 hover:shadow-[0_0_15px_oklch(0.58_0.2_260/0.1)] transition-all cursor-pointer group"
+            variants={cardVariants}
+            className="glass-2 rounded-xl p-5 hover:border-primary/50 hover:shadow-[0_0_15px_oklch(0.58_0.2_260/0.1)] transition-all cursor-pointer group border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             onClick={() => handleOpenEditor(agent)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleOpenEditor(agent);
+              }
+            }}
+            aria-label={`Open agent ${agent.name || agent.id}`}
           >
             <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center mb-3">
               <Bot className="w-5 h-5 text-primary" />
@@ -261,7 +303,7 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
                 <Monitor className="w-3 h-3" /> {agent.model}
               </div>
             )}
-          </div>
+          </motion.div>
         ))}
       </div>
 
@@ -280,22 +322,26 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
           {/* File Tabs */}
           <div className="flex gap-2 border-b border-border">
             <button
-              className={`px-4 py-2 text-sm font-medium transition-colors -mb-px ${activeFile === "SOUL.md"
+              className={`px-4 py-2 min-h-11 text-sm font-medium transition-colors -mb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-t ${activeFile === "SOUL.md"
                 ? "border-b-2 border-primary text-primary"
                 : "text-muted-foreground hover:text-foreground"
                 }`}
               onClick={() => handleTabChange("SOUL.md")}
               disabled={loadingFile}
+              aria-pressed={activeFile === "SOUL.md"}
+              aria-label="Edit SOUL.md"
             >
               SOUL.md
             </button>
             <button
-              className={`px-4 py-2 text-sm font-medium transition-colors -mb-px ${activeFile === "INSTRUCTIONS.md"
+              className={`px-4 py-2 min-h-11 text-sm font-medium transition-colors -mb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-t ${activeFile === "INSTRUCTIONS.md"
                 ? "border-b-2 border-primary text-primary"
                 : "text-muted-foreground hover:text-foreground"
                 }`}
               onClick={() => handleTabChange("INSTRUCTIONS.md")}
               disabled={loadingFile}
+              aria-pressed={activeFile === "INSTRUCTIONS.md"}
+              aria-label="Edit INSTRUCTIONS.md"
             >
               INSTRUCTIONS.md
             </button>
@@ -309,7 +355,7 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
               </div>
             ) : (
               <textarea
-                className="w-full h-full px-3 py-2 rounded-md border border-input bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                className="w-full h-full px-3 py-2 min-h-11 rounded-md border border-input bg-background text-sm font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                 value={fileContent}
                 onChange={(e) => setFileContent(e.target.value)}
                 placeholder={`Enter ${activeFile} content...`}
@@ -346,6 +392,6 @@ export function AgentsView({ status, agents, onRefresh, onStartGateway }: Agents
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

@@ -23,6 +23,7 @@ export interface Profile {
     profile_id: string;
     workspace_id: string;
     role: string;
+    dashboard_role?: string | null;
     label: string;
     color: string;
   }>;

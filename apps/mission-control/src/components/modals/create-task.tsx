@@ -26,6 +26,7 @@ import {
   saveCommunityUsecaseFavorites,
   toggleCommunityUsecaseFavorite,
 } from "@/lib/community-usecase-favorites";
+import { CREATE_TASK_PLACEHOLDERS } from "@/lib/learning-hub-lessons";
 
 interface CommunityUsecaseTemplate {
   id: string;
@@ -468,7 +469,7 @@ export function CreateTaskModal({
                 className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="What needs to be done?"
+                placeholder={CREATE_TASK_PLACEHOLDERS.title}
                 autoFocus
                 maxLength={200}
               />
@@ -479,7 +480,7 @@ export function CreateTaskModal({
                 className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring min-h-[80px] resize-y"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional details..."
+                placeholder={CREATE_TASK_PLACEHOLDERS.description}
                 maxLength={2000}
               />
             </div>

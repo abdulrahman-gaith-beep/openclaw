@@ -57,6 +57,9 @@ const WORKSPACE_COLORS: { id: string; label: string; class: string }[] = [
 interface ManageProfilesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  workspaceId: string;
+  /** When false, current user cannot change profile links or delete this workspace */
+  isOwner?: boolean;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -64,6 +67,8 @@ interface ManageProfilesDialogProps {
 export function ManageProfilesDialog({
   open,
   onOpenChange,
+  workspaceId,
+  isOwner = true,
 }: ManageProfilesDialogProps) {
   const { profiles, refreshProfiles } = useProfiles();
 
@@ -135,6 +140,7 @@ export function ManageProfilesDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
+          workspace_id: workspaceId,
           avatar_color: selectedColor,
           avatar_emoji: selectedEmoji,
         }),
@@ -158,6 +164,7 @@ export function ManageProfilesDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: editingProfile.id,
+          workspace_id: workspaceId,
           name: name.trim(),
           avatar_color: selectedColor,
           avatar_emoji: selectedEmoji,
@@ -179,7 +186,7 @@ export function ManageProfilesDialog({
       `Are you sure you want to delete "${profile.name}"? This cannot be undone.`
     );
     if (!confirmed) {return;}
-    await fetch(`/api/profiles?id=${profile.id}`, { method: "DELETE" });
+    await fetch(`/api/profiles?id=${profile.id}&workspace_id=${encodeURIComponent(workspaceId)}`, { method: "DELETE" });
     await refreshProfiles();
   };
 
@@ -276,15 +283,15 @@ export function ManageProfilesDialog({
 
   // ── Delete workspace ────────────────────────────────────────────────────
 
-  const handleDeleteWorkspace = async (workspaceId: string) => {
-    const ws = allWorkspaces.find((w) => w.id === workspaceId);
+  const handleDeleteWorkspace = async (workspaceIdToDelete: string) => {
+    const ws = allWorkspaces.find((w) => w.id === workspaceIdToDelete);
     const confirmed = window.confirm(
-      `Delete workspace "${ws?.label || workspaceId}"? All tasks and data in this workspace will be permanently removed.`
+      `Delete workspace "${ws?.label || workspaceIdToDelete}"? All tasks and data in this workspace will be permanently removed.`
     );
     if (!confirmed) {return;}
-    setTogglingId(workspaceId);
+    setTogglingId(workspaceIdToDelete);
     try {
-      await apiFetch(`/api/workspaces?id=${workspaceId}`, { method: "DELETE" });
+      await apiFetch(`/api/workspaces?id=${workspaceIdToDelete}&workspace_id=${encodeURIComponent(workspaceId)}`, { method: "DELETE" });
       await refreshProfiles();
       if (sharingProfile) {
         const updatedProfile = profiles.find((p) => p.id === sharingProfile.id);
@@ -447,7 +454,8 @@ export function ManageProfilesDialog({
                   const ownerWs = sharingProfile.workspaces.find(
                     (pw) => pw.workspace_id === ws.id && pw.role === "owner"
                   );
-                  const isOwner = !!ownerWs;
+                  const profileIsOwner = !!ownerWs;
+                  const canChangeCurrentWorkspace = ws.id !== workspaceId || isOwner;
                   const colorClass = WORKSPACE_COLORS.find((c) => c.id === ws.color)?.class || "bg-slate-500";
 
                   return (
@@ -459,8 +467,8 @@ export function ManageProfilesDialog({
                       <button
                         type="button"
                         className="flex-1 text-left min-w-0"
-                        disabled={togglingId !== null}
-                        onClick={() => toggleWorkspaceAccess(ws.id)}
+                        disabled={togglingId !== null || !canChangeCurrentWorkspace}
+                        onClick={() => canChangeCurrentWorkspace && toggleWorkspaceAccess(ws.id)}
                       >
                         <span className="font-medium text-sm truncate block">
                           {ws.label}
@@ -468,7 +476,7 @@ export function ManageProfilesDialog({
                         <span className="text-[10px] text-muted-foreground font-mono">{ws.id}</span>
                       </button>
                       <span className="shrink-0 text-xs">
-                        {isOwner ? (
+                        {profileIsOwner ? (
                           <span className="text-emerald-400">✅ Owner</span>
                         ) : hasAccess ? (
                           <span className="text-blue-400">🔗 Shared</span>
@@ -478,16 +486,18 @@ export function ManageProfilesDialog({
                           </span>
                         )}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
-                        title="Delete workspace"
-                        disabled={togglingId !== null}
-                        onClick={() => handleDeleteWorkspace(ws.id)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                      {canChangeCurrentWorkspace && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                          title="Delete workspace"
+                          disabled={togglingId !== null}
+                          onClick={() => handleDeleteWorkspace(ws.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
                     </div>
                   );
                 })

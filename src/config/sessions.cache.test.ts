@@ -33,12 +33,14 @@ describe("Session Store Cache", () => {
     // Clear cache before each test
     clearSessionStoreCacheForTest();
 
-    // Reset environment variable
+    // JSON-only so cache and "modify file on disk" behavior are deterministic
+    process.env.OPENCLAW_SESSION_STORE_SQLITE = "0";
     delete process.env.OPENCLAW_SESSION_CACHE_TTL_MS;
   });
 
   afterEach(() => {
     clearSessionStoreCacheForTest();
+    delete process.env.OPENCLAW_SESSION_STORE_SQLITE;
     delete process.env.OPENCLAW_SESSION_CACHE_TTL_MS;
   });
 

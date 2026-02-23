@@ -9,6 +9,7 @@ import {
   getSpecializedAgents,
   type SpecializedAgent,
 } from "@/lib/agent-registry";
+import { PROJECT_INTELLIGENCE } from "@/lib/learning-hub-lessons";
 
 export type SpecialistTrend = "improving" | "steady" | "needs_attention";
 
@@ -511,5 +512,7 @@ Execution rules for this task:
 2. Provide actionable output with verification steps.
 3. Prioritize accuracy and clarity over verbosity.
 4. Add a concise self-check section before final answer.
+
+${PROJECT_INTELLIGENCE}
 `;
 }

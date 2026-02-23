@@ -1,0 +1,33 @@
+import { Meta } from "@storybook/blocks";
+
+<Meta title="Design System/Introduction" />
+
+# Mission Control Design System (2026)
+
+OpenClaw Mission Control uses a **2026-style** design system with glassmorphism 2.0, Bento layouts, fluid typography, and Framer Motion animations. All motion respects `prefers-reduced-motion`.
+
+## Principles
+
+- **Glass 2.0** — Cards and panels use `.glass-2`: blur, semi-transparent backgrounds, and soft borders. Hover and focus-visible states add a subtle glow and ring.
+- **Motion** — Staggered entrances, card slide-up, and micro-interactions (hover/tap scale) are implemented with Framer Motion and disabled when the user prefers reduced motion.
+- **Typography** — Hero headline uses fluid size `var(--hero-heading-size)` and an optional gradient text animation (disabled when reduced motion).
+- **Accessibility** — Skip link, focus-visible rings, semantic landmarks, and keyboard support on interactive cards.
+
+## Tokens
+
+- **Glass:** `--glass-blur`, `--glass-bg`, `--glass-border`, `--glass-radius`
+- **Bento / Hero:** `--bento-radius`, `--hero-heading-size`
+- **Shadows:** `--shadow-glow`, `--shadow-glow-sm` for hover states
+
+## Components
+
+- **Hero Section** — Gradient headline + tagline, hero background, stagger animation.
+- **Bento Grid** — Uneven grid with `BentoCell` (colSpan/rowSpan), glass-2 and hover scale.
+- **Glass cards** — Any `.glass-2` block; use for stat cards, list items, modals.
+- **View skeleton** — Loading placeholders with glass-2 and optional shimmer (respects reduced motion).
+
+## View transitions
+
+Switching between app views (Board, Agents, Learning Hub, etc.) uses a short fade + slide transition (AnimatePresence + motion.div keyed by view). Disabled when reduced motion is preferred.
+
+Use the **Theme** toolbar control above to switch between light and dark.

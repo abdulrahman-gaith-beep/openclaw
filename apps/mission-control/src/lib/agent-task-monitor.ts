@@ -273,6 +273,7 @@ class AgentTaskMonitor {
         type: "task_review",
         task_id: taskId,
         agent_id: agentId,
+        workspace_id: task.workspace_id,
         message: `Agent "${agentId}" completed work on "${task.title}" in ${duration}s — moved to review`,
         metadata: { duration, sessionKey },
       });
@@ -363,6 +364,7 @@ class AgentTaskMonitor {
         type: "task_review",
         task_id: taskId,
         agent_id: agentId,
+        workspace_id: task.workspace_id,
         message: `Task "${task.title}" moved to review (${reason})`,
       });
 

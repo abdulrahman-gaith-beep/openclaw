@@ -3047,7 +3047,7 @@ export function suggestAgentForTask(taskDescription: string): SpecializedAgent |
     "performance-engineer": ["performance", "optimize", "speed", "lighthouse", "bundle", "cache", "core web vitals"],
     "observability-engineer": ["logging", "monitoring", "metrics", "observability", "traces", "errors", "alerts"],
     "sre-guardian": ["reliability", "incident", "sre", "runbook", "slo", "sla", "disaster recovery"],
-    "design-system-architect": ["design system", "tokens", "storybook", "accessibility", "a11y", "wcag"],
+    "design-system": ["design system", "tokens", "storybook", "accessibility", "a11y", "wcag"],
     "api-excellence": ["openapi", "swagger", "sdk", "rest", "graphql", "api design", "versioning"],
     "security-hardening-specialist": ["security", "vulnerability", "auth", "csrf", "xss", "hardening", "threat model"],
     "integration-reliability-specialist": ["integration", "contract", "retry", "fallback", "timeout", "resilience", "gateway"],
@@ -3081,6 +3081,11 @@ export function suggestAgentForTask(taskDescription: string): SpecializedAgent |
     "feature-flags-specialist": ["feature flag", "rollout", "a/b test", "kill switch", "progressive delivery", "canary"],
     "database-migration-specialist": ["migration", "alembic", "schema evolution", "backfill", "zero downtime migration", "expand contract"],
     "financial-data-integrity": ["reconciliation", "audit trail", "nav verification", "financial integrity", "break detection"],
+    "ceo-advisor": ["ceo", "executive", "strategy", "board", "leadership", "vision", "governance", "stakeholder"],
+    "cto-advisor": ["cto", "tech strategy", "architecture", "engineering", "hiring", "tech debt", "platform"],
+    "content-strategist": ["content", "copy", "blog", "seo", "editorial", "messaging", "brand voice"],
+    "demand-gen": ["demand gen", "lead gen", "marketing", "campaign", "conversion", "funnel", "growth"],
+    "product-manager": ["product", "roadmap", "prioritization", "user story", "backlog", "sprint", "agile", "pm"],
   };
   
   let bestMatch: { agentId: string; score: number } | null = null;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { Plus, MoreHorizontal, CheckCircle2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TaskCard } from "./task-card";
@@ -11,6 +12,14 @@ import {
   validateTaskStatusTransition,
   type TaskStatus,
 } from "@/lib/task-workflow";
+import { staggerContainerVariants, glassCardVariants, useReducedMotion } from "@/design-system";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useDashboardLocaleContext } from "@/lib/dashboard-locale-context";
+import { getTooltip } from "@/lib/dashboard-guide-content";
 
 // --- Types ---
 
@@ -29,6 +38,14 @@ export const COLUMNS: { id: ColumnId; label: string }[] = [
 function getColumnDotColor(id: ColumnId): string {
   return getStatusColor(id);
 }
+
+const KANBAN_TOOLTIP_KEY: Record<ColumnId, string> = {
+  inbox: "kanbanInbox",
+  assigned: "kanbanAssigned",
+  in_progress: "kanbanInProgress",
+  review: "kanbanReview",
+  done: "kanbanDone",
+};
 
 /** Per-column accent colors for top border + heading text. */
 const COLUMN_ACCENT: Record<ColumnId, { border: string; text: string }> = {
@@ -71,6 +88,7 @@ export function KanbanBoard({
   onMoveTask,
   onCreateTask,
 }: KanbanBoardProps) {
+  const { locale } = useDashboardLocaleContext();
   const [dragOverColumn, setDragOverColumn] = useState<ColumnId | null>(null);
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [moveFeedback, setMoveFeedback] = useState<string | null>(null);
@@ -130,14 +148,24 @@ export function KanbanBoard({
     setDraggedTask(null);
   };
 
+  const reduceMotion = useReducedMotion();
+  const noMotion = { initial: {}, animate: {} };
+  const containerVariants = reduceMotion ? noMotion : staggerContainerVariants;
+  const columnVariants = reduceMotion ? noMotion : glassCardVariants;
+
   return (
-    <div className="flex-1 overflow-x-auto overflow-y-auto p-6">
+    <div className="flex-1 overflow-x-auto overflow-y-auto p-4 sm:p-6 min-w-0">
       {moveFeedback && (
         <div className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-500" role="alert" aria-live="assertive">
           {moveFeedback}
         </div>
       )}
-      <div className="flex min-h-full gap-4">
+      <motion.div
+        className="flex min-h-full gap-4 min-w-max"
+        variants={containerVariants}
+        initial="initial"
+        animate="animate"
+      >
         {COLUMNS.map((col) => {
           const colTasks = getColumnTasks(col.id);
           const isActive = col.id === "in_progress";
@@ -145,19 +173,27 @@ export function KanbanBoard({
           const accent = COLUMN_ACCENT[col.id];
 
           return (
-            <div
+            <motion.div
               key={col.id}
+              variants={columnVariants}
               role="group"
               aria-label={`${col.label} column, ${colTasks.length} ${colTasks.length === 1 ? "task" : "tasks"}`}
-              className={`flex-1 flex flex-col min-w-[280px] rounded-lg border border-t-2 ${accent.border} border-x-border border-b-border ${isDragOver ? "ring-2 ring-primary/30" : ""} ${isActive ? "column-glow" : ""} bg-muted/30 backdrop-blur-sm`}
+              className={`flex-1 flex flex-col min-w-[260px] sm:min-w-[280px] max-w-full rounded-xl border border-t-2 ${accent.border} border-x-border border-b-border ${isDragOver ? "ring-2 ring-primary/30" : ""} ${isActive ? "column-glow" : ""} glass-2`}
             >
               {/* Column Header */}
               <div className="p-3 border-b border-border/50 flex justify-between items-center relative z-10">
                 <div className="flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${getColumnDotColor(col.id)}`} />
-                  <h3 className={`font-bold text-sm tracking-wide ${accent.text}`}>
-                    {col.label}
-                  </h3>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <h3 className={`font-bold text-sm tracking-wide cursor-help ${accent.text}`}>
+                        {col.label}
+                      </h3>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>{getTooltip(locale, KANBAN_TOOLTIP_KEY[col.id])}</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <span className={`text-[10px] px-1.5 rounded font-mono border ${isActive
                     ? "bg-primary/20 text-primary border-primary/20"
                     : "bg-muted text-muted-foreground border-border"
@@ -168,7 +204,7 @@ export function KanbanBoard({
                 {col.id === "inbox" ? (
                   <button
                     onClick={onCreateTask}
-                    className="text-muted-foreground hover:text-primary transition-colors"
+                    className="text-muted-foreground hover:text-primary transition-colors min-h-11 min-w-11 flex items-center justify-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     aria-label="Create new task"
                   >
                     <Plus className="w-4 h-4" />
@@ -213,10 +249,10 @@ export function KanbanBoard({
                   )}
                 </div>
               </ScrollArea>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }

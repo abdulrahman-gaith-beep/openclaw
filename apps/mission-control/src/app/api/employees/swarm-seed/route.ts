@@ -373,5 +373,5 @@ export const POST = withApiGuard(async (request: NextRequest) => {
   } catch (error) {
     return handleApiError(error, "Failed to seed swarm employees");
   }
-}, ApiGuardPresets.write);
+}, { ...ApiGuardPresets.write, requireWorkspaceRole: "owner" });
 

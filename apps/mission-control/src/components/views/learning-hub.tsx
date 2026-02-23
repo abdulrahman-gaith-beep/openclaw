@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { motion } from "framer-motion";
 import {
   BookOpen,
   Search,
@@ -10,17 +11,26 @@ import {
   ExternalLink,
   Sparkles,
   Bell,
+  Layers,
+  Copy,
+  Download,
+  Bot,
+  Loader2,
 } from "lucide-react";
+import { staggerContainerVariants, glassCardVariants, useReducedMotion } from "@/design-system";
+import { getAgentById } from "@/lib/agent-registry";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 import type { Task } from "@/lib/hooks/use-tasks";
 
 // --- Types ---
@@ -100,10 +110,14 @@ interface LearningHubProps {
   workspaceId?: string;
   tasks?: Task[];
   onOpenTask?: (taskId: string) => void | Promise<void>;
+  showToast?: (message: string, type: "success" | "error") => void;
+  /** Called when a build completes so parent can refetch tasks. */
+  onBuildComplete?: () => void | Promise<void>;
 }
 
+/** Maps lesson ID to task ID(s). Supports single or parallel multi-agent builds. */
 interface BuildTaskMap {
-  [lessonId: string]: string;
+  [lessonId: string]: string | string[];
 }
 
 // --- Curated Lessons Database ---
@@ -439,9 +453,129 @@ function readStoredJson<T>(key: string, fallback: T): T {
   }
 }
 
+const BUILD_TASKS_LEGACY_KEY = "oc_lesson_build_tasks";
+const BUILD_TASKS_PREFIX = "oc_lesson_build_tasks_";
+
+/** Read workspace-scoped buildTaskByLesson. Migrates legacy flat storage to workspace key. */
+function readBuildTaskByLesson(workspaceId: string): BuildTaskMap {
+  if (typeof window === "undefined") {return {};}
+  const key = `${BUILD_TASKS_PREFIX}${workspaceId}`;
+  // Migrate legacy flat storage to workspace-scoped
+  const legacy = localStorage.getItem(BUILD_TASKS_LEGACY_KEY);
+  if (legacy) {
+    try {
+      const parsed = JSON.parse(legacy) as Record<string, string | string[]>;
+      if (parsed && typeof parsed === "object" && !("workspaces" in parsed)) {
+        localStorage.setItem(key, legacy);
+        localStorage.removeItem(BUILD_TASKS_LEGACY_KEY);
+      }
+    } catch {
+      localStorage.removeItem(BUILD_TASKS_LEGACY_KEY);
+    }
+  }
+  const raw = localStorage.getItem(key);
+  if (!raw) {return {};}
+  try {
+    const parsed = JSON.parse(raw) as Record<string, string | string[]>;
+    const result: BuildTaskMap = {};
+    for (const [lessonId, val] of Object.entries(parsed ?? {})) {
+      const ids = toTaskIds(val);
+      if (ids.length > 0) {result[lessonId] = ids;}
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+/** Write workspace-scoped buildTaskByLesson. */
+function writeBuildTaskByLesson(workspaceId: string, map: BuildTaskMap): void {
+  if (typeof window === "undefined") {return;}
+  localStorage.setItem(`${BUILD_TASKS_PREFIX}${workspaceId}`, JSON.stringify(map));
+}
+
 function stripHtml(input: string): string {
   return input.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
+
+/** Normalize BuildTaskMap value to string[] (migrates legacy single taskId). */
+function toTaskIds(value: string | string[] | undefined): string[] {
+  if (!value) {return [];}
+  return Array.isArray(value) ? value : [value];
+}
+
+/** Batch status for parallel builds: counts by status. */
+interface BatchStatus {
+  done: number;
+  inProgress: number;
+  review: number;
+  queued: number;
+  unknown: number;
+  total: number;
+}
+
+/** Compute batch status for task IDs using taskById. */
+function computeBatchStatus(
+  taskIds: string[],
+  taskById: Map<string, Task>
+): BatchStatus {
+  const status: BatchStatus = { done: 0, inProgress: 0, review: 0, queued: 0, unknown: 0, total: taskIds.length };
+  for (const id of taskIds) {
+    const task = taskById.get(id);
+    if (!task) {
+      status.unknown += 1;
+      continue;
+    }
+    switch (task.status) {
+      case "done":
+        status.done += 1;
+        break;
+      case "in_progress":
+      case "assigned":
+        status.inProgress += 1;
+        break;
+      case "review":
+        status.review += 1;
+        break;
+      case "inbox":
+      default:
+        status.queued += 1;
+        break;
+    }
+  }
+  return status;
+}
+
+/** Format batch status for display (e.g. "2/3 complete", "1 in progress, 2 done"). */
+function formatBatchStatus(s: BatchStatus): string {
+  if (s.total === 0) {return "";}
+  if (s.done === s.total) {return `${s.done}/${s.total} complete`;}
+  const parts: string[] = [];
+  if (s.done > 0) {parts.push(`${s.done} done`);}
+  if (s.review > 0) {parts.push(`${s.review} in review`);}
+  if (s.inProgress > 0) {parts.push(`${s.inProgress} in progress`);}
+  if (s.queued > 0 || s.unknown > 0) {
+    const q = s.queued + s.unknown;
+    parts.push(`${q} queued`);
+  }
+  return parts.join(", ") || `${s.total} tasks`;
+}
+
+/** Sub-task templates for parallel multi-agent builds (per Learning Hub lessons). */
+const PARALLEL_SUBTASK_TEMPLATES = [
+  {
+    suffix: "Implementation",
+    description: "Implement the core improvement from the lesson. Build a NEW feature or improve EXISTING code. Make one practical, testable change visible in the running app.",
+  },
+  {
+    suffix: "Tests",
+    description: "Add or update tests for the changes from this lesson. Ensure the improvement is verifiable. Follow existing test patterns in the codebase.",
+  },
+  {
+    suffix: "Docs",
+    description: "Update documentation (README, comments, or inline docs) to reflect the lesson's implementation. Keep it concise and actionable.",
+  },
+] as const;
 
 function mergeLessons(existing: Lesson[], incoming: Lesson[]): Lesson[] {
   const byId = new Map(existing.map((lesson) => [lesson.id, lesson]));
@@ -498,38 +632,41 @@ function buildInitialLearningHubState() {
     savedLessons,
     toBuildLessons,
     notifications: [...newNotifications, ...existingNotifications].slice(0, 50),
-    buildTaskByLesson: readStoredJson<BuildTaskMap>("oc_lesson_build_tasks", {}),
   };
 }
 
 // --- Feature Builds List ---
 
+function Pulse({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-muted/60 ${className}`} />;
+}
+
 function BuildStatusBadge({ status }: { status: string }) {
   switch (status) {
     case "in_progress":
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+        <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/20">
+          <Loader2 className="w-3 h-3 animate-spin" />
           Building...
         </span>
       );
     case "review":
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-500">
+        <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-500 border border-blue-500/20">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
           In Review
         </span>
       );
     case "done":
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500">
+        <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/20">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           Done
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-muted/60 text-muted-foreground border border-border">
           <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
           {status || "Queued"}
         </span>
@@ -554,14 +691,16 @@ function FeatureBuildsList({
     return map;
   }, [tasks]);
 
-  // Get all lessons that have a build task, sorted by task creation date (newest first)
+  // Get all (lesson, task) pairs, flattened for multi-agent builds; sorted by task creation date (newest first)
   const buildEntries = useMemo(() => {
-    return Object.entries(buildTaskByLesson)
-      .map(([lessonId, taskId]) => {
-        const lesson = lessons.find((l) => l.id === lessonId);
-        const task = taskById.get(taskId);
-        return { lessonId, taskId, lesson, task };
-      })
+    const entries: Array<{ lessonId: string; taskId: string; lesson: Lesson | undefined; task: Task | undefined }> = [];
+    for (const [lessonId, taskIds] of Object.entries(buildTaskByLesson)) {
+      const lesson = lessons.find((l) => l.id === lessonId);
+      for (const taskId of toTaskIds(taskIds)) {
+        entries.push({ lessonId, taskId, lesson, task: taskById.get(taskId) });
+      }
+    }
+    return entries
       .filter((e) => e.lesson)
       .toSorted((a, b) => {
         const aTime = a.task ? new Date(a.task.created_at).getTime() : 0;
@@ -570,6 +709,28 @@ function FeatureBuildsList({
       });
   }, [buildTaskByLesson, lessons, taskById]);
 
+  // Group by lesson for batch status display; sort groups by most recent task (newest first)
+  const sortedLessonGroups = useMemo(() => {
+    const map = new Map<string, typeof buildEntries>();
+    for (const e of buildEntries) {
+      const list = map.get(e.lessonId) ?? [];
+      list.push(e);
+      map.set(e.lessonId, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => {
+        const aTime = a.task ? new Date(a.task.created_at).getTime() : 0;
+        const bTime = b.task ? new Date(b.task.created_at).getTime() : 0;
+        return bTime - aTime;
+      });
+    }
+    return Array.from(map.entries()).toSorted(([, a], [, b]) => {
+      const aTime = Math.max(...a.map((e) => e.task ? new Date(e.task.created_at).getTime() : 0));
+      const bTime = Math.max(...b.map((e) => e.task ? new Date(e.task.created_at).getTime() : 0));
+      return bTime - aTime;
+    });
+  }, [buildEntries]);
+
   const doneCount = buildEntries.filter((e) => e.task?.status === "done").length;
   const activeCount = buildEntries.filter(
     (e) => e.task?.status === "in_progress" || e.task?.status === "review"
@@ -577,9 +738,9 @@ function FeatureBuildsList({
 
   if (buildEntries.length === 0) {
     return (
-      <div className="p-12 flex flex-col items-center justify-center text-center gap-3">
-        <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
-          <Hammer className="w-7 h-7 text-muted-foreground" />
+      <div className="p-16 flex flex-col items-center justify-center text-center gap-4 glass-2 rounded-xl border border-dashed border-border">
+        <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center">
+          <Hammer className="w-8 h-8 text-muted-foreground" />
         </div>
         <h3 className="font-bold text-lg">No feature builds yet</h3>
         <p className="text-sm text-muted-foreground max-w-sm">
@@ -590,67 +751,146 @@ function FeatureBuildsList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Summary bar */}
-      <div className="flex items-center gap-4 text-sm">
-        <span className="text-muted-foreground">
+      <div className="flex items-center gap-4 text-sm flex-wrap">
+        <span className="text-muted-foreground font-medium">
           {buildEntries.length} build{buildEntries.length !== 1 ? "s" : ""}
         </span>
         {doneCount > 0 && (
-          <span className="text-emerald-500 font-medium">{doneCount} done</span>
+          <span className="inline-flex items-center gap-1.5 text-emerald-500 font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            {doneCount} done
+          </span>
         )}
         {activeCount > 0 && (
-          <span className="text-amber-500 font-medium">{activeCount} active</span>
+          <span className="inline-flex items-center gap-1.5 text-amber-500 font-medium">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            {activeCount} active
+          </span>
         )}
       </div>
 
-      {/* Build list */}
-      {buildEntries.map(({ lessonId, taskId, lesson, task }) => (
-        <div
-          key={lessonId}
-          className={`glass-panel rounded-lg p-4 flex items-center justify-between gap-4 ${task?.status === "done"
-            ? "border-emerald-500/20"
-            : "border-border"
-            }`}
-        >
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-medium text-sm truncate">
-                {lesson?.title ?? "Unknown Lesson"}
-              </h4>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              {task?.assigned_agent_id && (
-                <span>Agent: {task.assigned_agent_id}</span>
-              )}
-              {task?.created_at && (
-                <span>{timeAgo(new Date(task.created_at).getTime())}</span>
-              )}
-            </div>
-          </div>
+      {/* Build list: grouped by lesson for batch status */}
+      {sortedLessonGroups.map(([lessonId, entries]) => {
+        const lesson = entries[0]?.lesson;
+        const taskIds = entries.map((e) => e.taskId);
+        const batchStatus = computeBatchStatus(taskIds, taskById);
+        const isParallel = entries.length > 1;
 
-          <div className="flex items-center gap-2 shrink-0">
-            <BuildStatusBadge status={task?.status ?? "inbox"} />
-            {onOpenTask && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => void onOpenTask(taskId)}
-                className="text-xs h-7"
-              >
-                Open Task
-              </Button>
+        return (
+          <motion.div
+            key={lessonId}
+            layout
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            className="glass-2 rounded-xl border border-border overflow-hidden"
+          >
+            {/* Lesson header with batch status (for parallel builds) */}
+            {isParallel && (
+              <div className="px-4 py-2.5 border-b border-border/60 bg-muted/20 flex items-center justify-between gap-2 flex-wrap">
+                <h4 className="font-medium text-sm truncate">{lesson?.title ?? "Unknown Lesson"}</h4>
+                <span
+                  className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-primary/15 text-primary border border-primary/20"
+                  title={formatBatchStatus(batchStatus)}
+                >
+                  {batchStatus.done === batchStatus.total ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      {formatBatchStatus(batchStatus)}
+                    </>
+                  ) : (
+                    formatBatchStatus(batchStatus)
+                  )}
+                </span>
+              </div>
             )}
-          </div>
-        </div>
-      ))}
+            {/* Task rows */}
+            <div className="divide-y divide-border/50">
+              {entries.map(({ taskId, task }) => {
+                const agent = task?.assigned_agent_id ? getAgentById(task.assigned_agent_id) : undefined;
+                const agentName = agent?.name ?? task?.assigned_agent_id;
+                const isInProgress = task?.status === "in_progress";
+                const isDone = task?.status === "done";
+                return (
+                  <div
+                    key={taskId}
+                    className={`p-4 flex items-center justify-between gap-4 transition-colors ${
+                      isDone ? "bg-emerald-500/5" : isInProgress ? "bg-primary/5" : ""
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0 flex items-center gap-4">
+                      {agentName && (
+                        <div className="shrink-0 flex items-center gap-2">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center border ${
+                            isInProgress ? "bg-primary/20 border-primary/40" : isDone ? "bg-emerald-500/20 border-emerald-500/40" : "bg-muted/50 border-border"
+                          }`}>
+                            <Bot className={`w-4 h-4 ${isInProgress ? "text-primary" : isDone ? "text-emerald-500" : "text-muted-foreground"}`} />
+                          </div>
+                          <div className="hidden sm:block">
+                            <span className="text-xs font-medium text-foreground block truncate max-w-[120px]">{agentName}</span>
+                            {task?.created_at && (
+                              <span className="text-[10px] text-muted-foreground">{timeAgo(new Date(task.created_at).getTime())}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        {!isParallel && (
+                          <h4 className="font-medium text-sm truncate mb-0.5">
+                            {lesson?.title ?? "Unknown Lesson"}
+                          </h4>
+                        )}
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                          {task?.assigned_agent_id && (
+                            <span className="sm:hidden">Agent: {agentName}</span>
+                          )}
+                          {task?.created_at && (
+                            <span className="sm:hidden">{timeAgo(new Date(task.created_at).getTime())}</span>
+                          )}
+                          {isInProgress && (
+                            <div className="w-24 h-1 bg-muted rounded-full overflow-hidden">
+                              <motion.div
+                                className="h-full bg-primary rounded-full"
+                                initial={{ width: "0%" }}
+                                animate={{ width: "66%" }}
+                                transition={{ duration: 1.5, repeat: Infinity, repeatType: "reverse" }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <BuildStatusBadge status={task?.status ?? "inbox"} />
+                      {onOpenTask && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => void onOpenTask(taskId)}
+                          className="text-xs min-h-9 min-w-[72px]"
+                        >
+                          Open Task
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        );
+      })}
     </div>
   );
 }
 
 // --- Main Component ---
 
-export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: LearningHubProps) {
+export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask, showToast, onBuildComplete }: LearningHubProps) {
+  const effectiveWorkspaceId = workspaceId ?? "golden";
   const initialLearningHubState = useMemo(buildInitialLearningHubState, []);
   const [lessons, setLessons] = useState<Lesson[]>(initialLearningHubState.lessons);
   const [savedLessons, setSavedLessons] = useState<string[]>(
@@ -662,12 +902,40 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
   const [notifications, setNotifications] = useState<Notification[]>(
     initialLearningHubState.notifications
   );
-  const [buildTaskByLesson, setBuildTaskByLesson] = useState<BuildTaskMap>(
-    initialLearningHubState.buildTaskByLesson ?? {}
-  );
+  const [buildTaskByLesson, setBuildTaskByLesson] = useState<BuildTaskMap>({});
+
+  const skipFirstPersist = useRef(true);
+  const notificationPanelRef = useRef<HTMLDivElement>(null);
+
+  // Hydrate workspace-scoped buildTaskByLesson when workspace changes
+  useEffect(() => {
+    setBuildTaskByLesson(readBuildTaskByLesson(effectiveWorkspaceId));
+    skipFirstPersist.current = true;
+  }, [effectiveWorkspaceId]);
+
+  // Close notification panel on Escape or click outside
+  useEffect(() => {
+    if (!showNotifications) {return;}
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {setShowNotifications(false);}
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notificationPanelRef.current && !notificationPanelRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("click", handleClickOutside, true);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("click", handleClickOutside, true);
+    };
+  }, [showNotifications]);
   const [buildingLessonIds, setBuildingLessonIds] = useState<Set<string>>(
     new Set()
   );
+  const [buildParallelLesson, setBuildParallelLesson] = useState<Lesson | null>(null);
+  const [buildParallelSubTasks, setBuildParallelSubTasks] = useState<boolean[]>([true, true, true]);
   const [buildErrorByLesson, setBuildErrorByLesson] = useState<
     Record<string, string>
   >({});
@@ -695,13 +963,15 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
 
   const toggleSaved = useCallback((lessonId: string) => {
     setSavedLessons((prev) => {
-      const updated = prev.includes(lessonId)
-        ? prev.filter((id) => id !== lessonId)
-        : [...prev, lessonId];
+      const isAdding = !prev.includes(lessonId);
+      const updated = isAdding ? [...prev, lessonId] : prev.filter((id) => id !== lessonId);
       localStorage.setItem("oc_saved_lessons", JSON.stringify(updated));
+      if (showToast) {
+        showToast(isAdding ? "Lesson saved" : "Lesson removed from saved", "success");
+      }
       return updated;
     });
-  }, []);
+  }, [showToast]);
 
   const markNotificationRead = useCallback((notifId: string) => {
     setNotifications((prev) => {
@@ -733,15 +1003,19 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
   }, [notifications]);
 
   useEffect(() => {
-    localStorage.setItem("oc_lesson_build_tasks", JSON.stringify(buildTaskByLesson));
-  }, [buildTaskByLesson]);
+    if (skipFirstPersist.current) {
+      skipFirstPersist.current = false;
+      return;
+    }
+    writeBuildTaskByLesson(effectiveWorkspaceId, buildTaskByLesson);
+  }, [effectiveWorkspaceId, buildTaskByLesson]);
 
   const refreshSpecialistSuggestions = useCallback(async () => {
     setSpecialistSuggestionLoading(true);
     try {
       const params = new URLSearchParams();
-      if (workspaceId) {
-        params.set("workspace_id", workspaceId);
+      if (effectiveWorkspaceId) {
+        params.set("workspace_id", effectiveWorkspaceId);
       }
       const url = params.toString()
         ? `/api/agents/specialists/suggestions?${params.toString()}`
@@ -765,7 +1039,7 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
     } finally {
       setSpecialistSuggestionLoading(false);
     }
-  }, [workspaceId]);
+  }, [effectiveWorkspaceId]);
 
   useEffect(() => {
     void refreshSpecialistSuggestions();
@@ -853,30 +1127,32 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
       await refreshLiveLessons(true);
       await refreshSpecialistSuggestions();
       setLiveLessonsError(null);
+      if (showToast) {showToast("Lessons refreshed", "success");}
     } catch (error) {
-      setLiveLessonsError(
-        error instanceof Error ? error.message : "Failed to refresh lessons"
-      );
+      const msg = error instanceof Error ? error.message : "Failed to refresh lessons";
+      setLiveLessonsError(msg);
+      if (showToast) {showToast(msg, "error");}
     } finally {
       setIsLoading(false);
     }
-  }, [refreshLiveLessons, refreshSpecialistSuggestions]);
+  }, [refreshLiveLessons, refreshSpecialistSuggestions, showToast]);
+
+  const hasBuildForLesson = useCallback(
+    (lessonId: string) => toTaskIds(buildTaskByLesson[lessonId]).length > 0,
+    [buildTaskByLesson]
+  );
 
   const handleBuildLesson = useCallback(
     async (lesson: Lesson) => {
       if (buildingLessonIds.has(lesson.id)) {return;}
-      if (buildTaskByLesson[lesson.id]) {return;}
+      if (hasBuildForLesson(lesson.id)) {return;}
 
       setBuildErrorByLesson((prev) => {
         const next = { ...prev };
         delete next[lesson.id];
         return next;
       });
-      setBuildingLessonIds((prev) => {
-        const next = new Set(prev);
-        next.add(lesson.id);
-        return next;
-      });
+      setBuildingLessonIds((prev) => new Set(prev).add(lesson.id));
 
       try {
         let recommendedAgentId: string | undefined;
@@ -887,7 +1163,7 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
             body: JSON.stringify({
               title: `Implement lesson: ${lesson.title}`,
               description: `${lesson.summary}\n${stripHtml(lesson.content).slice(0, 800)}`,
-              workspace_id: workspaceId,
+              workspace_id: effectiveWorkspaceId,
               limit: 1,
             }),
           });
@@ -919,8 +1195,7 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
               `URL: ${lesson.url ?? "N/A"}`,
               `Summary: ${lesson.summary}`,
               "",
-              `Content excerpt: ${lessonText.slice(0, 600)}${lessonText.length > 600 ? "..." : ""
-              }`,
+              `Content excerpt: ${lessonText.slice(0, 600)}${lessonText.length > 600 ? "..." : ""}`,
               "",
               "Delivery criteria:",
               "1. Make one practical, testable improvement to OpenClaw Mission Control.",
@@ -930,7 +1205,7 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
             priority: lesson.rating >= 90 ? "high" : "medium",
             assigned_agent_id: recommendedAgentId,
             tags: ["learning-hub", "lesson", lesson.category, lesson.id],
-            workspace_id: workspaceId,
+            workspace_id: effectiveWorkspaceId,
           }),
         });
         const taskData = (await taskRes.json()) as {
@@ -960,35 +1235,41 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
           }
         }
 
-        setBuildTaskByLesson((prev) => ({ ...prev, [lesson.id]: taskId }));
+        setBuildTaskByLesson((prev) => ({ ...prev, [lesson.id]: [taskId] }));
         setToBuildLessons((prev) => (prev.includes(lesson.id) ? prev : [...prev, lesson.id]));
-        const buildNotification: Notification = {
-          id: `n-build-${lesson.id}-${Date.now()}`,
-          title: `🔨 Build started: ${lesson.title}`,
-          desc: recommendedAgentId
-            ? dispatchWarning
-              ? `Task created for ${recommendedAgentId}, but dispatch failed.`
-              : `Task created and dispatched to ${recommendedAgentId}.`
-            : "Task created in inbox. Assign a specialist to start.",
-          type: "build",
-          rating: lesson.rating,
-          lessonId: lesson.id,
-          read: false,
-          at: Date.now(),
-        };
-        setNotifications((prev) => [buildNotification, ...prev].slice(0, 50));
-        if (dispatchWarning) {
-          setBuildErrorByLesson((prev) => ({
-            ...prev,
-            [lesson.id]: dispatchWarning,
-          }));
-        }
-      } catch (error) {
-        setBuildErrorByLesson((prev) => ({
+        setNotifications((prev) => [
+          {
+            id: `n-build-${lesson.id}-${Date.now()}`,
+            title: `🔨 Build started: ${lesson.title}`,
+            desc: recommendedAgentId
+              ? dispatchWarning
+                ? `Task created for ${recommendedAgentId}, but dispatch failed.`
+                : `Task created and dispatched to ${recommendedAgentId}.`
+              : "Task created in inbox. Assign a specialist to start.",
+            type: "build",
+            rating: lesson.rating,
+            lessonId: lesson.id,
+            read: false,
+            at: Date.now(),
+          },
           ...prev,
-          [lesson.id]:
-            error instanceof Error ? error.message : "Failed to build lesson task",
-        }));
+        ].slice(0, 50));
+        if (showToast) {
+          showToast(
+            recommendedAgentId && !dispatchWarning
+              ? `Build started — dispatched to ${recommendedAgentId}`
+              : "Build task created",
+            "success"
+          );
+        }
+        if (dispatchWarning) {
+          setBuildErrorByLesson((prev) => ({ ...prev, [lesson.id]: dispatchWarning }));
+        }
+        onBuildComplete?.();
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : "Failed to build lesson task";
+        setBuildErrorByLesson((prev) => ({ ...prev, [lesson.id]: msg }));
+        if (showToast) {showToast(msg, "error");}
       } finally {
         setBuildingLessonIds((prev) => {
           const next = new Set(prev);
@@ -997,7 +1278,133 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
         });
       }
     },
-    [buildTaskByLesson, buildingLessonIds, workspaceId]
+    [buildTaskByLesson, buildingLessonIds, hasBuildForLesson, effectiveWorkspaceId, showToast, onBuildComplete]
+  );
+
+  const handleBuildLessonMultiAgent = useCallback(
+    async (lesson: Lesson, selectedTemplates: typeof PARALLEL_SUBTASK_TEMPLATES = PARALLEL_SUBTASK_TEMPLATES) => {
+      if (buildingLessonIds.has(lesson.id)) {return;}
+      if (hasBuildForLesson(lesson.id)) {return;}
+      if (selectedTemplates.length === 0) {return;}
+
+      setBuildErrorByLesson((prev) => {
+        const next = { ...prev };
+        delete next[lesson.id];
+        return next;
+      });
+      setBuildingLessonIds((prev) => new Set(prev).add(lesson.id));
+      setBuildParallelLesson(null);
+
+      try {
+        const selectedCount = selectedTemplates.length;
+        const recommendationRes = await fetch("/api/agents/specialists/recommend", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: `Implement lesson: ${lesson.title}`,
+            description: `${lesson.summary}\n${stripHtml(lesson.content).slice(0, 800)}`,
+            workspace_id: effectiveWorkspaceId,
+            limit: selectedCount,
+          }),
+        });
+        const recommendationData = (await recommendationRes.json()) as {
+          recommendations?: Array<{ agentId: string }>;
+          error?: string;
+        };
+        if (!recommendationRes.ok) {
+          throw new Error(recommendationData.error || "Failed to get specialist recommendations");
+        }
+        const agents = recommendationData.recommendations ?? [];
+        if (agents.length === 0) {
+          throw new Error("No specialists available. Add agents in the Agents view first.");
+        }
+
+        const lessonContext = [
+          `Lesson: "${lesson.title}"`,
+          `Source: ${lesson.source} (${lesson.sourceDetail})`,
+          `URL: ${lesson.url ?? "N/A"}`,
+          `Summary: ${lesson.summary}`,
+          "",
+          `Content excerpt: ${stripHtml(lesson.content).slice(0, 500)}...`,
+        ].join("\n");
+
+        const taskDefs = selectedTemplates.slice(0, agents.length).map((tpl, i) => ({
+          title: `Learning Hub: ${lesson.title} — ${tpl.suffix}`,
+          description: [
+            "You are improving the OpenClaw Mission Control dashboard.",
+            "",
+            tpl.description,
+            "",
+            "---",
+            lessonContext,
+            "",
+            "Delivery criteria:",
+            "1. Make one practical, testable improvement.",
+            "2. The change must be visible or verifiable in the running app.",
+            "3. Leave a short comment documenting what changed and why.",
+          ].join("\n"),
+          priority: (lesson.rating >= 90 ? "high" : "medium"),
+          agentId: agents[i].agentId,
+        }));
+
+        const orchRes = await fetch("/api/orchestrator", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tasks: taskDefs,
+            missionName: `Learning Hub: ${lesson.title}`,
+            workspace_id: effectiveWorkspaceId,
+            tags: ["learning-hub", "lesson", `lesson:${lesson.id}`],
+          }),
+        });
+        const orchData = (await orchRes.json()) as {
+          ok?: boolean;
+          results?: Array<{ taskId: string; status: string }>;
+          error?: string;
+        };
+        if (!orchRes.ok || !orchData.ok) {
+          throw new Error(orchData.error || "Orchestrator dispatch failed");
+        }
+
+        const taskIds = (orchData.results ?? [])
+          .filter((r) => r.status === "dispatched")
+          .map((r) => r.taskId);
+        if (taskIds.length === 0) {
+          throw new Error("No tasks were dispatched. Check agent availability.");
+        }
+
+        setBuildTaskByLesson((prev) => ({ ...prev, [lesson.id]: taskIds }));
+        setToBuildLessons((prev) => (prev.includes(lesson.id) ? prev : [...prev, lesson.id]));
+        setNotifications((prev) => [
+          {
+            id: `n-build-multi-${lesson.id}-${Date.now()}`,
+            title: `🔨 Parallel build: ${lesson.title}`,
+            desc: `${taskIds.length} tasks dispatched to ${taskIds.length} specialist(s).`,
+            type: "build",
+            rating: lesson.rating,
+            lessonId: lesson.id,
+            read: false,
+            at: Date.now(),
+          },
+          ...prev,
+        ].slice(0, 50));
+        if (showToast) {
+          showToast(`Parallel build started — ${taskIds.length} tasks dispatched`, "success");
+        }
+        onBuildComplete?.();
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : "Failed to build lesson with multiple agents";
+        setBuildErrorByLesson((prev) => ({ ...prev, [lesson.id]: msg }));
+        if (showToast) {showToast(msg, "error");}
+      } finally {
+        setBuildingLessonIds((prev) => {
+          const next = new Set(prev);
+          next.delete(lesson.id);
+          return next;
+        });
+      }
+    },
+    [buildingLessonIds, hasBuildForLesson, effectiveWorkspaceId, showToast, onBuildComplete]
   );
 
   // Filter lessons
@@ -1013,12 +1420,15 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
       return true;
     })
     .filter((lesson) => {
-      if (!searchQuery) {return true;}
-      const q = searchQuery.toLowerCase();
+      if (!searchQuery.trim()) {return true;}
+      const q = searchQuery.toLowerCase().trim();
+      const contentText = stripHtml(lesson.content).toLowerCase();
       return (
         lesson.title.toLowerCase().includes(q) ||
         lesson.summary.toLowerCase().includes(q) ||
-        lesson.tags.some((t) => t.toLowerCase().includes(q))
+        lesson.category.toLowerCase().includes(q) ||
+        lesson.tags.some((t) => t.toLowerCase().includes(q)) ||
+        contentText.includes(q)
       );
     })
     .toSorted((a, b) => b.rating - a.rating);
@@ -1045,12 +1455,31 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
     { id: "builds", label: "✅ Feature Builds" },
   ];
 
+  const reduceMotion = useReducedMotion();
+  const noMotion = { initial: {}, animate: {} };
+  const containerVariants = reduceMotion ? noMotion : staggerContainerVariants;
+  const cardVariants = reduceMotion ? noMotion : glassCardVariants;
+
+  const taskById = useMemo(() => {
+    const map = new Map<string, Task>();
+    (externalTasks ?? []).forEach((t) => map.set(t.id, t));
+    return map;
+  }, [externalTasks]);
+
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden min-w-0 overflow-x-hidden">
+      <div className="shrink-0 px-6 py-4 border-b border-border/50">
+        <PageDescriptionBanner pageId="learn" />
+      </div>
       {/* Header */}
-      <div className="p-6 border-b border-border bg-card/50">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
+      <motion.div
+        className="p-6 border-b border-border glass-2"
+        variants={containerVariants}
+        initial="initial"
+        animate="animate"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+          <div className="min-w-0">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-primary" />
               Learning Hub
@@ -1065,21 +1494,44 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
                 : ""}
             </p>
             {liveLessonsError && (
-              <p className="text-xs text-destructive mt-1">
-                Live lesson sync unavailable: {liveLessonsError}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-xs text-destructive">
+                  Live lesson sync unavailable: {liveLessonsError}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs shrink-0"
+                  onClick={() => {
+                    setLiveLessonsError(null);
+                    void refreshLiveLessons(true).catch((e) =>
+                      setLiveLessonsError(e instanceof Error ? e.message : "Retry failed")
+                    );
+                  }}
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Retry
+                </Button>
+              </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Notifications */}
-            <div className="relative">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="relative"
-              >
-                <Bell className="w-4 h-4" />
+            <div className="relative" ref={notificationPanelRef}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative min-h-11 min-w-11 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              aria-label={
+                showNotifications
+                  ? "Close notifications"
+                  : unreadCount > 0
+                    ? `Open notifications (${unreadCount} unread)`
+                    : "Open notifications"
+              }
+            >
+              <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                     {unreadCount > 9 ? "9+" : unreadCount}
@@ -1088,12 +1540,13 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
               </Button>
 
               {showNotifications && (
-                <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+                <div className="absolute right-0 top-full mt-2 w-80 glass-2 border border-border rounded-xl shadow-lg z-50 overflow-hidden">
                   <div className="p-3 border-b border-border flex items-center justify-between">
                     <span className="font-semibold text-sm">Notifications</span>
                     <button
                       onClick={clearNotifications}
-                      className="text-xs text-muted-foreground hover:text-destructive"
+                      className="text-xs text-muted-foreground hover:text-destructive min-h-11 min-w-11 px-3 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      aria-label="Clear all notifications"
                     >
                       Clear all
                     </button>
@@ -1107,6 +1560,8 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
                       notifications.slice(0, 10).map((notif) => (
                         <div
                           key={notif.id}
+                          role="button"
+                          tabIndex={0}
                           onClick={() => {
                             markNotificationRead(notif.id);
                             if (notif.lessonId) {
@@ -1115,8 +1570,20 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
                             }
                             setShowNotifications(false);
                           }}
-                          className={`p-3 border-b border-border cursor-pointer hover:bg-muted/50 transition-colors ${!notif.read ? "bg-primary/5 border-l-2 border-l-primary" : ""
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              markNotificationRead(notif.id);
+                              if (notif.lessonId) {
+                                const lesson = lessons.find((l) => l.id === notif.lessonId);
+                                if (lesson) {setSelectedLesson(lesson);}
+                              }
+                              setShowNotifications(false);
+                            }
+                          }}
+                          className={`p-3 border-b border-border cursor-pointer hover:bg-muted/50 transition-colors min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset ${!notif.read ? "bg-primary/5 border-l-2 border-l-primary" : ""
                             }`}
+                          aria-label={`Notification: ${notif.title}`}
                         >
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-medium truncate flex-1">
@@ -1143,7 +1610,7 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
             <Button
               onClick={() => void handleRefreshLessons()}
               disabled={isLoading}
-              className="gap-2"
+              className="gap-2 min-h-11"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
               Refresh Lessons
@@ -1152,56 +1619,83 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          <div className="bg-muted/50 rounded-lg p-3 text-center border border-border">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+          <motion.div variants={cardVariants} className="glass-2 rounded-xl p-4 text-center border border-border/60 hover:border-primary/20 transition-colors">
             <div className="text-2xl font-bold text-primary">{stats.total}</div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</div>
-          </div>
-          <div className="bg-muted/50 rounded-lg p-3 text-center border border-border">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Total</div>
+          </motion.div>
+          <motion.div variants={cardVariants} className="glass-2 rounded-xl p-4 text-center border border-green-500/20 bg-green-500/5 hover:border-green-500/30 transition-colors">
             <div className="text-2xl font-bold text-green-400">{stats.elite}</div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Elite (90+)</div>
-          </div>
-          <div className="bg-muted/50 rounded-lg p-3 text-center border border-border">
+            <div className="text-[10px] text-green-400/80 uppercase tracking-wider mt-0.5">Elite (90+)</div>
+          </motion.div>
+          <motion.div variants={cardVariants} className="glass-2 rounded-xl p-4 text-center border border-border/60 hover:border-amber-500/20 transition-colors">
             <div className="text-2xl font-bold text-yellow-400">{stats.saved}</div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Saved</div>
-          </div>
-          <div className="bg-muted/50 rounded-lg p-3 text-center border border-border">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Saved</div>
+          </motion.div>
+          <motion.div variants={cardVariants} className="glass-2 rounded-xl p-4 text-center border border-border/60 hover:border-purple-500/20 transition-colors">
             <div className="text-2xl font-bold text-purple-400">{stats.toBuild}</div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">To Build</div>
-          </div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">To Build</div>
+          </motion.div>
         </div>
 
-        <div className="mb-4 rounded-lg border border-border bg-card/60 p-3">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="mb-5 rounded-xl border border-border glass-2 p-4">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Specialist Learning Signals
             </h3>
-            <span
-              className={`text-[11px] ${specialistSuggestionError ? "text-destructive" : "text-muted-foreground"
-                }`}
-            >
-              {specialistSuggestionError
-                ? `Unavailable: ${specialistSuggestionError}`
-                : specialistSuggestionLoading
-                  ? "Refreshing specialist signals..."
-                  : `Updated ${specialistSuggestionRefreshedAt
-                    ? timeAgo(new Date(specialistSuggestionRefreshedAt).getTime())
-                    : "just now"
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-[11px] ${specialistSuggestionError ? "text-destructive" : "text-muted-foreground"
                   }`}
-            </span>
+              >
+                {specialistSuggestionError
+                  ? `Unavailable: ${specialistSuggestionError}`
+                  : specialistSuggestionLoading
+                    ? "Refreshing specialist signals..."
+                    : `Updated ${specialistSuggestionRefreshedAt
+                      ? timeAgo(new Date(specialistSuggestionRefreshedAt).getTime())
+                      : "just now"
+                    }`}
+              </span>
+              {specialistSuggestionError && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => void refreshSpecialistSuggestions()}
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Retry
+                </Button>
+              )}
+            </div>
           </div>
 
-          {specialistSuggestions.length === 0 ? (
-            <p className="text-xs text-muted-foreground border border-dashed border-border rounded-md p-2">
+          {specialistSuggestionLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="glass-2 skeleton-shimmer rounded-lg p-3 space-y-2 border border-border overflow-hidden relative">
+                  <div className="flex items-center justify-between gap-2">
+                    <Pulse className="h-3 w-3/5 relative z-[1]" />
+                    <Pulse className="h-4 w-16 rounded-full relative z-[1]" />
+                  </div>
+                  <Pulse className="h-3 w-full relative z-[1]" />
+                  <Pulse className="h-3 w-4/5 relative z-[1]" />
+                  <Pulse className="h-2.5 w-1/3 relative z-[1]" />
+                </div>
+              ))}
+            </div>
+          ) : specialistSuggestions.length === 0 ? (
+            <p className="text-xs text-muted-foreground border border-dashed border-border rounded-lg p-4">
               No specialist learning recommendations yet. Complete and review more
               specialist tasks to unlock tailored learning tracks.
             </p>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {specialistSuggestions.slice(0, 3).map((suggestion) => (
                 <article
                   key={suggestion.id}
-                  className="rounded-md border border-border bg-background/70 p-2 space-y-1.5"
+                  className="rounded-lg border border-border/60 bg-background/50 p-3 space-y-2 hover:border-primary/20 transition-colors"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <h4 className="text-xs font-medium leading-tight">{suggestion.title}</h4>
@@ -1236,23 +1730,27 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
         </div>
 
         {/* Search & Filters */}
-        <div className="flex gap-3 items-center">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          <div className="relative flex-1 min-w-0 max-w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search lessons..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full pl-9 pr-4 py-2 min-h-11 bg-muted border border-border rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              aria-label="Search lessons by title, summary, or tags"
             />
           </div>
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex gap-1 flex-wrap" role="tablist">
             {FILTERS.map((filter) => (
               <button
                 key={filter.id}
+                type="button"
+                role="tab"
+                aria-selected={currentFilter === filter.id}
                 onClick={() => setCurrentFilter(filter.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${currentFilter === filter.id
+                className={`px-3 py-2 min-h-11 rounded-full text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${currentFilter === filter.id
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}
@@ -1262,7 +1760,7 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Content Area */}
       <ScrollArea className="flex-1">
@@ -1275,30 +1773,67 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
               onOpenTask={onOpenTask}
             />
           </div>
+        ) : filteredLessons.length === 0 ? (
+          <div className="p-16 flex flex-col items-center justify-center text-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center">
+              <Search className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="font-bold text-lg">No lessons match your filters</h3>
+            <p className="text-sm text-muted-foreground max-w-sm">
+              Try adjusting your search or filter. Clear the search box or switch to &quot;All&quot; to see all lessons.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchQuery("");
+                setCurrentFilter("all");
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
         ) : (
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <motion.div
+            className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 min-w-0"
+            variants={containerVariants}
+            initial="initial"
+            animate="animate"
+          >
             {filteredLessons.map((lesson) => {
               const ratingStyle = getRatingStyle(lesson.rating);
               const isSaved = savedLessons.includes(lesson.id);
               const isToBuild = toBuildLessons.includes(lesson.id);
               const isBuilding = buildingLessonIds.has(lesson.id);
-              const buildTaskId = buildTaskByLesson[lesson.id];
+              const buildTaskIds = toTaskIds(buildTaskByLesson[lesson.id]);
+              const hasBuild = buildTaskIds.length > 0;
               const buildError = buildErrorByLesson[lesson.id];
+              const batchStatus = hasBuild && buildTaskIds.length > 1
+                ? computeBatchStatus(buildTaskIds, taskById)
+                : null;
 
               return (
-                <div
+                <motion.div
                   key={lesson.id}
+                  variants={cardVariants}
+                  layout
+                  whileHover={reduceMotion ? undefined : { y: -2, transition: { duration: 0.2 } }}
+                  whileTap={reduceMotion ? undefined : { scale: 0.99 }}
                   onClick={() => setSelectedLesson(lesson)}
-                  className={`bg-card border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${lesson.rating >= 90
-                    ? "border-green-500/30 bg-gradient-to-br from-card to-green-500/5"
-                    : "border-border hover:border-primary/30"
-                    }`}
+                  className={`glass-2 border rounded-xl p-4 cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                    lesson.rating >= 90
+                      ? "border-green-500/40 bg-gradient-to-br from-[var(--glass-bg)] to-green-500/8 shadow-[0_0_20px_-8px_rgba(34,197,94,0.2)]"
+                      : "border-border hover:border-primary/30 hover:shadow-[0_0_15px_oklch(0.58_0.2_260/0.08)]"
+                  }`}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedLesson(lesson); } }}
+                  aria-label={`Open lesson: ${lesson.title}`}
                 >
-                  {/* Featured badge */}
+                  {/* Elite badge */}
                   {lesson.rating >= 90 && (
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-green-400 mb-2">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-green-400 mb-2 px-2 py-1 rounded-lg bg-green-500/10 w-fit">
                       <Sparkles className="w-3 h-3" />
-                      HOT LESSON
+                      ELITE LESSON
                     </div>
                   )}
 
@@ -1338,10 +1873,11 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
                         e.stopPropagation();
                         toggleSaved(lesson.id);
                       }}
-                      className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${isSaved
+                      className={`flex items-center gap-1 px-2 py-2 min-h-11 min-w-11 rounded text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isSaved
                         ? "bg-yellow-500/20 text-yellow-400"
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
                         }`}
+                      aria-label={isSaved ? "Remove from saved" : "Save lesson"}
                     >
                       <Star className={`w-3 h-3 ${isSaved ? "fill-current" : ""}`} />
                       {isSaved ? "Saved" : "Save"}
@@ -1349,38 +1885,59 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (buildTaskId || isBuilding) {return;}
+                        if (hasBuild || isBuilding) {return;}
                         void handleBuildLesson(lesson);
                       }}
-                      disabled={isBuilding || !!buildTaskId}
-                      className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${isBuilding
-                        ? "bg-purple-500/20 text-purple-300 cursor-wait"
-                        : buildTaskId
+                      disabled={isBuilding || hasBuild}
+                      aria-busy={isBuilding}
+                      className={`flex items-center gap-1.5 px-3 py-2 min-h-9 rounded-lg text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:focus-visible:ring-0 ${isBuilding
+                        ? "bg-primary/20 text-primary cursor-wait"
+                        : hasBuild
                           ? "bg-green-500/20 text-green-400 cursor-default"
                           : isToBuild
-                            ? "bg-purple-500/20 text-purple-400"
-                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                            ? "bg-primary/20 text-primary"
+                            : "bg-primary text-primary-foreground hover:bg-primary/90"
                         }`}
                     >
-                      <Hammer className="w-3 h-3" />
-                      {isBuilding
-                        ? "Building..."
-                        : buildTaskId
-                          ? "Built"
-                          : isToBuild
-                            ? "Queued"
-                            : "Build"}
+                      {isBuilding ? <Loader2 className="w-3 h-3 animate-spin" /> : <Hammer className="w-3 h-3" />}
+                      {isBuilding ? "Building…" : hasBuild ? "Built" : isToBuild ? "Queued" : "Build"}
                     </button>
-                    {buildTaskId && (
+                    {!hasBuild && !isBuilding && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleOpenBuiltTask(buildTaskId);
+                          setBuildParallelLesson(lesson);
+                          setBuildParallelSubTasks([true, true, true]);
                         }}
-                        className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-500/10 text-green-400 hover:bg-green-500/20"
+                        className="flex items-center gap-1.5 px-3 py-2 min-h-9 rounded-lg text-xs font-medium bg-muted text-muted-foreground hover:bg-primary/15 hover:text-primary border border-transparent hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-all"
+                        title="Build with agents in parallel (Implementation, Tests, Docs)"
+                        aria-label="Build with agents in parallel"
                       >
-                        Open Task
+                        <Layers className="w-3 h-3" />
+                        Parallel
                       </button>
+                    )}
+                    {buildTaskIds.length > 0 && (
+                      <>
+                        {batchStatus && (
+                          <span
+                            className="px-2 py-1.5 rounded text-[10px] bg-primary/10 text-primary border border-primary/20"
+                            title={formatBatchStatus(batchStatus)}
+                          >
+                            {formatBatchStatus(batchStatus)}
+                          </span>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenBuiltTask(buildTaskIds[0]);
+                          }}
+                          className="flex items-center gap-1 px-2 py-2 min-h-11 min-w-11 rounded text-xs bg-green-500/10 text-green-400 hover:bg-green-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          aria-label={`Open task${buildTaskIds.length > 1 ? "s" : ""}`}
+                        >
+                          Open Task{buildTaskIds.length > 1 ? "s" : ""}
+                        </button>
+                      </>
                     )}
                     {lesson.url && (
                       <button
@@ -1391,7 +1948,7 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
                         type="button"
                         aria-label={`Open source link for ${lesson.title}`}
                         title="Open source link"
-                        className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-muted text-muted-foreground hover:bg-muted/80 ml-auto"
+                        className="flex items-center gap-1 px-2 py-2 min-h-11 min-w-11 rounded text-xs bg-muted text-muted-foreground hover:bg-muted/80 ml-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         <ExternalLink className="w-3 h-3" />
                       </button>
@@ -1400,49 +1957,160 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
                   {buildError && (
                     <p className="mt-2 text-[11px] text-destructive line-clamp-2">{buildError}</p>
                   )}
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
       </ScrollArea>
 
+      {/* Sub-task Picker Modal (Build Parallel) */}
+      <Dialog
+        open={!!buildParallelLesson}
+        onOpenChange={(open) => {
+          if (!open) {setBuildParallelLesson(null);}
+        }}
+      >
+        <DialogContent className="max-w-md glass-2">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-primary" />
+              Build (Parallel)
+            </DialogTitle>
+            <DialogDescription>
+              Choose which sub-tasks to run. Each selected task will be dispatched to a specialist agent.
+            </DialogDescription>
+          </DialogHeader>
+          {buildParallelLesson && (
+            <div className="space-y-4">
+              <p className="text-sm font-medium text-foreground">
+                {buildParallelLesson.title}
+              </p>
+              <div className="space-y-3">
+                {PARALLEL_SUBTASK_TEMPLATES.map((tpl, i) => (
+                  <label
+                    key={tpl.suffix}
+                    className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={buildParallelSubTasks[i] ?? false}
+                      onChange={(e) => {
+                        setBuildParallelSubTasks((prev) => {
+                          const next = [...prev];
+                          next[i] = e.target.checked;
+                          return next;
+                        });
+                      }}
+                      className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                      aria-label={`Include ${tpl.suffix} sub-task`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-sm">{tpl.suffix}</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">{tpl.description}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setBuildParallelLesson(null)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    const selected = PARALLEL_SUBTASK_TEMPLATES.filter((_, i) => buildParallelSubTasks[i]);
+                    if (selected.length === 0) {return;}
+                    void handleBuildLessonMultiAgent(buildParallelLesson, selected);
+                  }}
+                  disabled={buildParallelSubTasks.every((v) => !v)}
+                  className="flex-1 gap-2"
+                >
+                  <Hammer className="w-4 h-4" />
+                  Build {buildParallelSubTasks.filter(Boolean).length} task{buildParallelSubTasks.filter(Boolean).length !== 1 ? "s" : ""}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Lesson Detail Modal */}
       <Dialog open={!!selectedLesson} onOpenChange={() => setSelectedLesson(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col glass-2">
           {selectedLesson && (
             <>
-              <DialogHeader>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${getSourceColor(selectedLesson.source)}`} />
+              <DialogHeader className="space-y-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${getSourceColor(selectedLesson.source)}`} />
                   <span className="text-xs font-medium text-muted-foreground uppercase">
                     {selectedLesson.source} • {selectedLesson.sourceDetail}
                   </span>
-                  <Badge className={`ml-auto ${getRatingStyle(selectedLesson.rating).bg} ${getRatingStyle(selectedLesson.rating).text}`}>
+                  <Badge className={`ml-auto ${getRatingStyle(selectedLesson.rating).bg} ${getRatingStyle(selectedLesson.rating).text} border-0`}>
                     {selectedLesson.rating >= 90 && "🔥 "}
                     {selectedLesson.rating}/100
                   </Badge>
                 </div>
-                <DialogTitle className="text-lg">{selectedLesson.title}</DialogTitle>
+                <DialogTitle className="text-xl font-bold leading-tight pr-8">
+                  {selectedLesson.title}
+                </DialogTitle>
+                <DialogDescription className="sr-only">
+                  {selectedLesson.summary}
+                </DialogDescription>
               </DialogHeader>
 
-              <div className="flex gap-1 flex-wrap mb-4">
+              <div className="flex gap-1.5 flex-wrap mb-4">
                 {selectedLesson.tags.map((tag) => (
-                  <span key={tag} className="px-2 py-0.5 bg-muted rounded text-xs text-muted-foreground">
+                  <span key={tag} className="px-2 py-1 bg-muted/80 rounded-md text-xs text-muted-foreground">
                     {tag}
                   </span>
                 ))}
               </div>
 
-              <ScrollArea className="flex-1 pr-4">
+              <ScrollArea className="flex-1 pr-4 -mx-1">
                 <div
-                  className="prose prose-sm prose-invert max-w-none [&_h3]:text-primary [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-1 [&_blockquote]:border-l-primary [&_blockquote]:bg-primary/10 [&_blockquote]:py-2 [&_blockquote]:px-4 [&_blockquote]:rounded-r [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-primary"
+                  className="prose prose-sm prose-invert max-w-none [&_h3]:text-primary [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-base [&_ul]:my-3 [&_ol]:my-3 [&_li]:my-1.5 [&_li]:leading-relaxed [&_blockquote]:border-l-4 [&_blockquote]:border-l-primary [&_blockquote]:bg-primary/10 [&_blockquote]:py-3 [&_blockquote]:px-4 [&_blockquote]:rounded-r-lg [&_blockquote]:my-4 [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-primary [&_code]:text-xs [&_p]:leading-relaxed [&_table]:my-4 [&_th]:font-medium"
                   // Security: Sanitize HTML to prevent XSS
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedLesson.content) }}
                 />
               </ScrollArea>
 
-              <div className="flex gap-2 pt-4 border-t border-border mt-4">
+              <div className="flex gap-2 pt-4 border-t border-border mt-4 flex-wrap shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    const text = `${selectedLesson.title}\n\n${selectedLesson.summary}\n\n${stripHtml(selectedLesson.content)}`;
+                    await navigator.clipboard.writeText(text);
+                    if (showToast) {showToast("Copied to clipboard", "success");}
+                  }}
+                  className="gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const text = `# ${selectedLesson.title}\n\n${selectedLesson.summary}\n\n${stripHtml(selectedLesson.content)}`;
+                    const blob = new Blob([text], { type: "text/markdown" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${selectedLesson.title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.md`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    if (showToast) {showToast("Exported as Markdown", "success");}
+                  }}
+                  className="gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Export
+                </Button>
                 <Button
                   variant={savedLessons.includes(selectedLesson.id) ? "default" : "outline"}
                   onClick={() => toggleSaved(selectedLesson.id)}
@@ -1452,32 +2120,56 @@ export function LearningHub({ workspaceId, tasks: externalTasks, onOpenTask }: L
                   {savedLessons.includes(selectedLesson.id) ? "Saved" : "Save Lesson"}
                 </Button>
                 <Button
-                  variant={buildTaskByLesson[selectedLesson.id] ? "default" : "outline"}
+                  variant={hasBuildForLesson(selectedLesson.id) ? "default" : "outline"}
                   onClick={() => {
-                    if (buildTaskByLesson[selectedLesson.id]) {return;}
+                    if (hasBuildForLesson(selectedLesson.id)) {return;}
                     void handleBuildLesson(selectedLesson);
                   }}
                   disabled={
                     buildingLessonIds.has(selectedLesson.id) ||
-                    !!buildTaskByLesson[selectedLesson.id]
+                    hasBuildForLesson(selectedLesson.id)
                   }
                   className="gap-2"
                 >
                   <Hammer className="w-4 h-4" />
                   {buildingLessonIds.has(selectedLesson.id)
                     ? "Building..."
-                    : buildTaskByLesson[selectedLesson.id]
+                    : hasBuildForLesson(selectedLesson.id)
                       ? "Build Started"
-                      : "Mark to Build"}
+                      : "Build"}
                 </Button>
-                {buildTaskByLesson[selectedLesson.id] && (
+                {!hasBuildForLesson(selectedLesson.id) && !buildingLessonIds.has(selectedLesson.id) && (
                   <Button
                     variant="outline"
-                    onClick={() => handleOpenBuiltTask(buildTaskByLesson[selectedLesson.id])}
+                    onClick={() => {
+                      setBuildParallelLesson(selectedLesson);
+                      setBuildParallelSubTasks([true, true, true]);
+                    }}
                     className="gap-2"
+                    title="Build with agents in parallel (Implementation, Tests, Docs)"
                   >
-                    Open Task
+                    <Layers className="w-4 h-4" />
+                    Build (Parallel)
                   </Button>
+                )}
+                {toTaskIds(buildTaskByLesson[selectedLesson.id]).length > 0 && (
+                  <>
+                    {toTaskIds(buildTaskByLesson[selectedLesson.id]).length > 1 && (
+                      <span
+                        className="px-2 py-1.5 rounded text-xs bg-primary/10 text-primary border border-primary/20"
+                        title={formatBatchStatus(computeBatchStatus(toTaskIds(buildTaskByLesson[selectedLesson.id]), taskById))}
+                      >
+                        {formatBatchStatus(computeBatchStatus(toTaskIds(buildTaskByLesson[selectedLesson.id]), taskById))}
+                      </span>
+                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => handleOpenBuiltTask(toTaskIds(buildTaskByLesson[selectedLesson.id])[0])}
+                      className="gap-2"
+                    >
+                      Open Task{toTaskIds(buildTaskByLesson[selectedLesson.id]).length > 1 ? "s" : ""}
+                    </Button>
+                  </>
                 )}
                 {selectedLesson.url && (
                   <Button

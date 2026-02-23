@@ -26,6 +26,8 @@ interface ConnectionMetrics {
 interface GatewaySectionProps {
     settings: AppSettings;
     onSettingsChange: (settings: AppSettings) => void;
+    /** When true, only show status and metrics; hide URL, token, and auto-connect (for shared users) */
+    readOnly?: boolean;
 }
 
 function formatUptime(ms: number): string {
@@ -38,7 +40,7 @@ function formatUptime(ms: number): string {
     return `${hours}h ${minutes % 60}m`;
 }
 
-export function GatewaySection({ settings, onSettingsChange }: GatewaySectionProps) {
+export function GatewaySection({ settings, onSettingsChange, readOnly = false }: GatewaySectionProps) {
     const [gatewayStatus, setGatewayStatus] = useState<"connected" | "disconnected" | "checking">("disconnected");
     const [metrics, setMetrics] = useState<ConnectionMetrics | null>(null);
     const [agentCount, setAgentCount] = useState(0);
@@ -111,7 +113,7 @@ export function GatewaySection({ settings, onSettingsChange }: GatewaySectionPro
 
     return (
         <SettingsSection
-            id="gateway"
+            id="settings-gateway"
             icon={<Wifi className="w-5 h-5" />}
             title="Gateway Connection"
             description="Configure the connection to the OpenClaw gateway"
@@ -179,49 +181,55 @@ export function GatewaySection({ settings, onSettingsChange }: GatewaySectionPro
                     </div>
                 )}
 
-                {/* Gateway URL */}
-                <div>
-                    <label className="block text-sm font-medium mb-2">Gateway URL</label>
-                    <input
-                        type="text"
-                        value={localUrl}
-                        onChange={(e) => setLocalUrl(e.target.value)}
-                        onBlur={() => updateField("gatewayUrl", localUrl)}
-                        onKeyDown={(e) => { if (e.key === "Enter") {updateField("gatewayUrl", localUrl);} }}
-                        placeholder="ws://127.0.0.1:18789"
-                        className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all text-sm font-mono"
-                    />
-                </div>
-
-                {/* Gateway Token */}
-                <div>
-                    <label className="block text-sm font-medium mb-2">Auth Token</label>
-                    <div className="relative">
+                {/* Gateway URL (owner only) */}
+                {!readOnly && (
+                    <div>
+                        <label className="block text-sm font-medium mb-2">Gateway URL</label>
                         <input
-                            type={showToken ? "text" : "password"}
-                            value={localToken}
-                            onChange={(e) => setLocalToken(e.target.value)}
-                            onBlur={() => updateField("gatewayToken", localToken)}
-                            onKeyDown={(e) => { if (e.key === "Enter") {updateField("gatewayToken", localToken);} }}
-                            placeholder="Enter auth token..."
-                            className="w-full px-4 py-2.5 pr-12 rounded-lg border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all text-sm font-mono"
+                            type="text"
+                            value={localUrl}
+                            onChange={(e) => setLocalUrl(e.target.value)}
+                            onBlur={() => updateField("gatewayUrl", localUrl)}
+                            onKeyDown={(e) => { if (e.key === "Enter") {updateField("gatewayUrl", localUrl);} }}
+                            placeholder="ws://127.0.0.1:18789"
+                            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all text-sm font-mono"
                         />
-                        <button
-                            onClick={() => setShowToken(!showToken)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted/50 text-muted-foreground"
-                        >
-                            {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
                     </div>
-                </div>
+                )}
 
-                {/* Auto-connect */}
-                <Toggle
-                    enabled={settings.autoConnect}
-                    onChange={(v) => updateField("autoConnect", v)}
-                    label="Auto-Connect"
-                    description="Automatically connect to the gateway on startup"
-                />
+                {/* Gateway Token (owner only) */}
+                {!readOnly && (
+                    <div>
+                        <label className="block text-sm font-medium mb-2">Auth Token</label>
+                        <div className="relative">
+                            <input
+                                type={showToken ? "text" : "password"}
+                                value={localToken}
+                                onChange={(e) => setLocalToken(e.target.value)}
+                                onBlur={() => updateField("gatewayToken", localToken)}
+                                onKeyDown={(e) => { if (e.key === "Enter") {updateField("gatewayToken", localToken);} }}
+                                placeholder="Enter auth token..."
+                                className="w-full px-4 py-2.5 pr-12 rounded-lg border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all text-sm font-mono"
+                            />
+                            <button
+                                onClick={() => setShowToken(!showToken)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted/50 text-muted-foreground"
+                            >
+                                {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Auto-connect (owner only) */}
+                {!readOnly && (
+                    <Toggle
+                        enabled={settings.autoConnect}
+                        onChange={(v) => updateField("autoConnect", v)}
+                        label="Auto-Connect"
+                        description="Automatically connect to the gateway on startup"
+                    />
+                )}
 
                 {/* Cluster Nodes */}
                 <div className="pt-2 border-t border-border/50">

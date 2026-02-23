@@ -2,7 +2,7 @@
 
 > Complete map of the codebase with naming standards and conventions.
 
-**Last updated:** 2026-02-16
+**Last updated:** 2026-02-23
 **Total source lines:** ~38,000
 **Main entry:** `page.tsx` (565 lines — fully refactored)
 
@@ -11,7 +11,7 @@
 ## Folder Structure
 
 ```
-apps/dashboard/
+apps/mission-control/
 ├── bin/
 │   └── cli.mjs                    # npx entry point, setup wizard
 ├── data/
@@ -30,6 +30,10 @@ apps/dashboard/
 │   │   ├── layout/                # Layout components (sidebar, header)
 │   │   └── views/                 # Feature view components (22 views)
 │   └── lib/                       # Utilities & services (28 modules + hooks)
+├── docs/
+│   ├── product/                   # Product docs (page-map, board-lifecycle, chat, etc.)
+│   ├── api/                       # API docs (frontend-contracts, error-model)
+│   └── known-limitations.md       # Limitations registry
 ├── CHANGELOG.md
 ├── DIRECTORY.md                   # This file
 └── README.md                      # User documentation
@@ -45,7 +49,7 @@ apps/dashboard/
 |------|-------|---------|
 | `ai-specialists.tsx` | 2,965 | AI specialist management and recommendations |
 | `chat-panel.tsx` | 1,618 | Agent chat interface with sessions |
-| `learning-hub.tsx` | 1,506 | Curated AI tips, lessons, notifications |
+| `learning-hub.tsx` | ~1,680 | Curated AI tips, lessons, notifications; Build + Build (Parallel) multi-agent dispatch |
 | `approval-center.tsx` | 1,385 | Command approval queue |
 | `settings-panel.tsx` | 1,279+ | Config, preferences, integrations, API keys, local models |
 | `agent-chat.tsx` | 1,196 | Direct agent conversation UI |
@@ -65,7 +69,9 @@ apps/dashboard/
 | `all-tools.tsx` | 216+ | Full ecosystem directory (tools, plugins, MCP, specialists) |
 | `missions-view.tsx` | 134 | Mission listing |
 
-### API Routes (`src/app/api/`) — 52+ endpoints, ~6,200 LOC
+### API Endpoint Map
+
+API Routes (`src/app/api/`) — 52+ endpoints, ~6,200 LOC. See [Frontend Contracts](./docs/api/frontend-contracts.md) and [Error Model](./docs/api/error-model.md).
 
 | Route | Lines | Purpose |
 |-------|-------|---------|

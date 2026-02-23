@@ -6,7 +6,11 @@ import { createTask, updateTask, addComment, logActivity, listTasks } from "@/li
 import { withApiGuard, ApiGuardPresets } from "@/lib/api-guard";
 import { handleApiError } from "@/lib/errors";
 import { retrySendMessageWithFallback } from "@/lib/model-fallback";
-import { orchestratorPostSchema, parseOrThrow } from "@/lib/schemas";
+import { orchestratorPostSchema, orchestratorGetQuerySchema, parseOrThrow } from "@/lib/schemas";
+import { EXECUTION_GUIDANCE } from "@/lib/learning-hub-lessons";
+import { sanitizeInput } from "@/lib/validation";
+import { isValidWorkspaceId } from "@/lib/workspaces-server";
+import { UserError } from "@/lib/errors";
 
 /**
  * POST /api/orchestrator — Dispatch multiple tasks to agents in parallel.
@@ -20,10 +24,14 @@ import { orchestratorPostSchema, parseOrThrow } from "@/lib/schemas";
  */
 export const POST = withApiGuard(async (request: NextRequest) => {
   try {
-    const { tasks: taskDefs, missionName, workspace_id } = parseOrThrow(
+    const { tasks: taskDefs, missionName, workspace_id, tags: batchTags } = parseOrThrow(
       orchestratorPostSchema,
       await request.json()
     );
+
+    if (!isValidWorkspaceId(workspace_id)) {
+      throw new UserError("workspace_id is invalid", 400);
+    }
 
     const batchId = uuidv4().slice(0, 8);
     const client = getOpenClawClient();
@@ -54,11 +62,12 @@ export const POST = withApiGuard(async (request: NextRequest) => {
       const taskId = uuidv4();
       createTask({
         id: taskId,
-        title: def.title,
-        description: def.description || "",
+        title: sanitizeInput(def.title),
+        description: sanitizeInput(def.description || ""),
         priority: def.priority || "medium",
         assigned_agent_id: def.agentId,
         workspace_id,
+        tags: JSON.stringify(batchTags ?? []),
       });
 
       createdTasks.push({
@@ -75,8 +84,9 @@ export const POST = withApiGuard(async (request: NextRequest) => {
     logActivity({
       id: uuidv4(),
       type: "orchestrator_batch",
+      workspace_id,
       message: `Orchestrator batch "${missionName || batchId}" launched with ${createdTasks.length} tasks`,
-      metadata: { batchId, taskCount: createdTasks.length, workspace_id: workspace_id ?? "golden" },
+      metadata: { batchId, taskCount: createdTasks.length, workspace_id },
     });
 
     // Dispatch all tasks in parallel
@@ -114,6 +124,12 @@ ${task.description || "No additional details provided."}
 
 ---
 
+## Learning Hub Guidance
+
+${EXECUTION_GUIDANCE}
+
+---
+
 Please complete this task. Provide a clear, actionable response with your findings or deliverables. Be concise but thorough.`;
 
         try {
@@ -144,6 +160,7 @@ Please complete this task. Provide a clear, actionable response with your findin
           type: "task_in_progress",
           task_id: task.id,
           agent_id: task.agentId,
+          workspace_id,
           message: `Agent "${task.agentId}" started "${task.title}" (orchestrator batch)`,
           metadata: { sessionKey, batchId },
         });
@@ -203,9 +220,16 @@ Please complete this task. Provide a clear, actionable response with your findin
 /**
  * GET /api/orchestrator — Get status of all in-progress orchestrator tasks.
  * Returns tasks with their current status and any agent responses.
+ * Requires workspace_id query param for workspace isolation.
  */
-export const GET = withApiGuard(async () => {
+export const GET = withApiGuard(async (request: NextRequest) => {
   try {
+    const { searchParams } = new URL(request.url);
+    const { workspace_id } = parseOrThrow(
+      orchestratorGetQuerySchema,
+      Object.fromEntries(searchParams.entries())
+    );
+
     // Get all active monitors
     const monitor = getAgentTaskMonitor();
     const activeMonitors = monitor.getActiveMonitors();
@@ -214,13 +238,13 @@ export const GET = withApiGuard(async () => {
     const isOrchTask = (sessionKey: string | null) =>
       sessionKey != null && sessionKey.includes(":orch-");
 
-    const inProgress = listTasks({ status: "in_progress" }).filter((t) =>
+    const inProgress = listTasks({ status: "in_progress", workspace_id }).filter((t) =>
       isOrchTask(t.openclaw_session_key)
     );
-    const inReview = listTasks({ status: "review" }).filter((t) =>
+    const inReview = listTasks({ status: "review", workspace_id }).filter((t) =>
       isOrchTask(t.openclaw_session_key)
     );
-    const inDone = listTasks({ status: "done" }).filter((t) =>
+    const inDone = listTasks({ status: "done", workspace_id }).filter((t) =>
       isOrchTask(t.openclaw_session_key)
     );
 

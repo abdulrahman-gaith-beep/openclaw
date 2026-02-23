@@ -21,7 +21,7 @@ export function SettingsSection({ icon, title, description, children, defaultOpe
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
-        <div id={id} className="bg-card border border-border rounded-xl overflow-hidden transition-all duration-200 hover:border-border/80">
+        <div id={id} className="glass-2 border border-border rounded-xl overflow-hidden transition-all duration-200 hover:border-border/80">
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full flex items-center justify-between p-5 hover:bg-muted/30 transition-colors"

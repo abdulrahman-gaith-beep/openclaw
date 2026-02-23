@@ -36,6 +36,7 @@ import { AiModelSection } from "./settings/ai-model-section";
 import { AiApiCommandCenter } from "./settings/ai-api-command-center";
 import { IntegrationsSection } from "./settings/integrations-section";
 import { ToastProvider } from "@/components/ui/toast";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 
 import type { ThemeMode, AppSettings } from "./settings/settings-types";
 import {
@@ -51,7 +52,12 @@ import {
 // SettingsPanel — orchestrator for all settings sections
 // ============================================================================
 
-export default function SettingsPanel() {
+interface SettingsPanelProps {
+  /** When false (shared user), owner-only sections are hidden and gateway is read-only */
+  isOwner?: boolean;
+}
+
+export default function SettingsPanel({ isOwner = true }: SettingsPanelProps) {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const mounted = useSyncExternalStore(
     () => () => { },
@@ -65,6 +71,24 @@ export default function SettingsPanel() {
     if (!mounted) {return;}
     applyTheme(resolveTheme(settings.theme));
   }, [settings.theme, mounted]);
+
+  // Scroll to settings section when hash is #settings-* (e.g. #settings-gateway, #settings-api-keys)
+  useEffect(() => {
+    if (!mounted) {return;}
+    const raw = window.location.hash.replace("#", "");
+    if (!raw.startsWith("settings")) {return;}
+    const anchor = raw.includes("?") ? raw.split("?")[0] : raw;
+    if (anchor === "settings") {return;}
+    const scrollToSection = () => {
+      const el = document.getElementById(anchor);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+    // Brief delay so lazy-loaded sections (e.g. ApiKeysSection) are in DOM
+    const t = setTimeout(scrollToSection, 150);
+    return () => clearTimeout(t);
+  }, [mounted]);
 
   // Watch for system theme changes
   useEffect(() => {
@@ -138,6 +162,7 @@ export default function SettingsPanel() {
   return (
     <ToastProvider>
       <div className="max-w-4xl mx-auto space-y-4 p-4 sm:p-6 pb-20">
+        <PageDescriptionBanner pageId="settings" className="mb-4" />
         {/* Page Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
@@ -156,11 +181,11 @@ export default function SettingsPanel() {
         {/* ───────── Section 1: Appearance ───────── */}
         <AppearanceSection settings={settings} onThemeChange={handleThemeChange} />
 
-        {/* ───────── Section 2: Risk Level (NEW) ───────── */}
-        <RiskLevelSection />
+        {/* ───────── Section 2: Risk Level (owner only) ───────── */}
+        {isOwner && <RiskLevelSection />}
 
         {/* ───────── Section 3: Gateway Connection ───────── */}
-        <GatewaySection settings={settings} onSettingsChange={updateSettings} />
+        <GatewaySection settings={settings} onSettingsChange={updateSettings} readOnly={!isOwner} />
 
         {/* ───────── Section 4: Session Management ───────── */}
         <SettingsSection
@@ -335,8 +360,8 @@ export default function SettingsPanel() {
           </div>
         </SettingsSection>
 
-        {/* ───────── Section 6: AI API Command Center ───────── */}
-        <AiApiCommandCenter />
+        {/* ───────── Section 6: AI API Command Center (owner only) ───────── */}
+        {isOwner && <AiApiCommandCenter />}
 
         {/* ───────── Section 7: Model Selection ───────── */}
         <AiModelSection />
@@ -344,8 +369,8 @@ export default function SettingsPanel() {
         {/* ───────── Section 8: Integrations ───────── */}
         <IntegrationsSection />
 
-        {/* ───────── Section 9: Local Models ───────── */}
-        <LocalModelsSection />
+        {/* ───────── Section 9: Local Models (owner only) ───────── */}
+        {isOwner && <LocalModelsSection />}
 
         {/* ───────── Section 10: Keyboard Shortcuts ───────── */}
         <SettingsSection
@@ -381,7 +406,7 @@ export default function SettingsPanel() {
 
         {/* ───────── Section 11: Data Management ───────── */}
         <SettingsSection
-          id="data-management"
+          id="settings-data"
           icon={<Download className="w-5 h-5" />}
           title="Data Management"
           description="Export, import, or reset your settings"

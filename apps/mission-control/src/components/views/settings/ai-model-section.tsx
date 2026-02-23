@@ -87,7 +87,7 @@ export function AiModelSection() {
 
     return (
         <SettingsSection
-            id="ai-model"
+            id="settings-models"
             icon={<Sparkles className="w-5 h-5" />}
             title="AI Model & Provider"
             description="Select the default AI model for task dispatch"

@@ -149,7 +149,7 @@ export const GET = withApiGuard(async (request: NextRequest) => {
   } catch (error) {
     return handleApiError(error, "Failed to list schedules");
   }
-}, ApiGuardPresets.read);
+}, { ...ApiGuardPresets.read, requireWorkspaceRole: "owner" });
 
 export const POST = withApiGuard(async (request: NextRequest) => {
   try {
@@ -179,7 +179,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
   } catch (error) {
     return handleApiError(error, "Failed to create schedule");
   }
-}, ApiGuardPresets.write);
+}, { ...ApiGuardPresets.write, requireWorkspaceRole: "owner" });
 
 export const PATCH = withApiGuard(async (request: NextRequest) => {
   try {
@@ -219,7 +219,7 @@ export const PATCH = withApiGuard(async (request: NextRequest) => {
   } catch (error) {
     return handleApiError(error, "Failed to update schedule");
   }
-}, ApiGuardPresets.write);
+}, { ...ApiGuardPresets.write, requireWorkspaceRole: "owner" });
 
 export const DELETE = withApiGuard(async (request: NextRequest) => {
   try {
@@ -241,4 +241,4 @@ export const DELETE = withApiGuard(async (request: NextRequest) => {
   } catch (error) {
     return handleApiError(error, "Failed to delete schedule");
   }
-}, ApiGuardPresets.write);
+}, { ...ApiGuardPresets.write, requireWorkspaceRole: "owner" });

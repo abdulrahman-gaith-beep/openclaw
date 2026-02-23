@@ -163,6 +163,7 @@ export const createAgentSchema = z.object({
 export const specialistFeedbackSchema = z.object({
   agentId: safeString(120),
   taskId: safeString(120).optional(),
+  workspace_id: workspaceSchema,
   rating: z.coerce.number().int().min(1).max(5),
   dimension: z
     .enum(["overall", "accuracy", "actionability", "depth", "communication"])
@@ -427,7 +428,13 @@ export const orchestratorTaskSchema = z.object({
 export const orchestratorPostSchema = z.object({
   tasks: z.array(orchestratorTaskSchema).min(1).max(50),
   missionName: z.string().trim().max(200).optional(),
-  workspace_id: workspaceSchema.optional(),
+  workspace_id: workspaceSchema,
+  /** Optional tags applied to all tasks in the batch (e.g. learning-hub, lesson, lesson:id). */
+  tags: z.array(safeString(64)).max(30).optional(),
+});
+
+export const orchestratorGetQuerySchema = z.object({
+  workspace_id: workspaceSchema,
 });
 
 // --- Workspace CRUD schemas ---
@@ -501,6 +508,7 @@ export const updateWorkspaceSchema = z
 
 export const deleteWorkspaceQuerySchema = z.object({
   id: workspaceIdSchema,
+  workspace_id: workspaceSchema,
 });
 
 // ── Profile Schemas ────────────────────────────────
@@ -519,6 +527,7 @@ export const profileIdSchema = z
 
 export const createProfileSchema = z.object({
   name: safeString(50),
+  workspace_id: workspaceSchema,
   avatar_color: profileColorSchema.optional(),
   avatar_emoji: z.string().min(1).max(4).optional(),
 });
@@ -526,17 +535,19 @@ export const createProfileSchema = z.object({
 export const updateProfileSchema = z
   .object({
     id: profileIdSchema,
+    workspace_id: workspaceSchema,
     name: safeString(50).optional(),
     avatar_color: profileColorSchema.optional(),
     avatar_emoji: z.string().min(1).max(4).optional(),
   })
   .refine(
-    (p) => Object.keys(p).some((k) => k !== "id" && p[k as keyof typeof p] !== undefined),
+    (p) => Object.keys(p).some((k) => k !== "id" && k !== "workspace_id" && p[k as keyof typeof p] !== undefined),
     "No fields to update"
   );
 
 export const deleteProfileQuerySchema = z.object({
   id: profileIdSchema,
+  workspace_id: workspaceSchema,
 });
 
 export const profileWorkspaceLinkSchema = z.object({

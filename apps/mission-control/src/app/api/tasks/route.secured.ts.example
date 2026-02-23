@@ -123,6 +123,7 @@ export const POST = withAuth(async (request: NextRequest) => {
       type: "task_created",
       task_id: task.id,
       mission_id: task.mission_id ?? undefined,
+      workspace_id: task.workspace_id,
       message: `Task "${task.title}" created`,
     });
 
@@ -190,6 +191,7 @@ export const PATCH = withAuth(async (request: NextRequest) => {
         type: "task_status_changed",
         task_id: id as string,
         agent_id: (patch.assigned_agent_id ?? existing.assigned_agent_id ?? undefined) as string | undefined,
+        workspace_id: existing.workspace_id,
         message: `Task "${existing.title}" moved from ${existing.status} to ${patch.status}`,
         metadata: { from: existing.status, to: patch.status },
       });
@@ -226,6 +228,7 @@ export const DELETE = withAuth(async (request: NextRequest) => {
       id: uuidv4(),
       type: "task_deleted",
       task_id: id,
+      workspace_id: existing.workspace_id,
       message: `Task "${existing.title}" deleted`,
     });
 

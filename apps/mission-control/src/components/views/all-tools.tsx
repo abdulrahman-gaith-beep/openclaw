@@ -25,6 +25,9 @@ import {
   Users,
   Cpu,
   Activity,
+  LayoutTemplate,
+  Building2,
+  Smartphone,
   Loader2,
   Search,
   AlertTriangle,
@@ -33,11 +36,12 @@ import {
   X,
 } from "lucide-react";
 import type { ViewId } from "@/components/layout/sidebar";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 
 // --- Types ---
 
 type ToolLink = {
-  id: ViewId;
+  id: ViewId | string; // ViewId or settings anchor (e.g. settings-api-keys)
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -292,6 +296,12 @@ function buildSections(stats: EcoStats): ToolSection[] {
           description: "AI specialists and task assignment.",
           icon: Brain,
         },
+        {
+          id: "templates",
+          label: "Templates",
+          description: "Community and custom task templates.",
+          icon: LayoutTemplate,
+        },
       ],
     },
     {
@@ -329,20 +339,20 @@ function buildSections(stats: EcoStats): ToolSection[] {
       accent: "from-cyan-500/20 to-teal-500/20",
       items: [
         {
-          id: "settings",
+          id: "settings-api-keys",
           label: "API Key Management",
           description:
             "Configure API keys for OpenAI, Anthropic, Google, and other AI providers.",
           icon: Key,
         },
         {
-          id: "settings",
+          id: "settings-local-models",
           label: "Local AI Models",
           description: "Manage Ollama and other locally-running AI models.",
           icon: Server,
         },
         {
-          id: "settings",
+          id: "settings-models",
           label: "AI Model & Provider",
           description: "Select active model, provider, and fallback config.",
           icon: Cpu,
@@ -354,6 +364,12 @@ function buildSections(stats: EcoStats): ToolSection[] {
       icon: Activity,
       accent: "from-amber-500/20 to-orange-500/20",
       items: [
+        {
+          id: "activity",
+          label: "Activity",
+          description: "Dedicated activity feed with filters.",
+          icon: Activity,
+        },
         {
           id: "approvals",
           label: "Approvals",
@@ -384,6 +400,12 @@ function buildSections(stats: EcoStats): ToolSection[] {
           description: "Messaging channels configuration.",
           icon: Radio,
         },
+        {
+          id: "devices",
+          label: "Devices",
+          description: "Device pairing and token management.",
+          icon: Smartphone,
+        },
       ],
     },
     {
@@ -391,6 +413,12 @@ function buildSections(stats: EcoStats): ToolSection[] {
       icon: Settings,
       accent: "from-emerald-500/20 to-green-500/20",
       items: [
+        {
+          id: "workspaces",
+          label: "Workspaces",
+          description: "List and manage workspaces.",
+          icon: Building2,
+        },
         {
           id: "missions",
           label: "Missions",
@@ -434,7 +462,7 @@ function buildSections(stats: EcoStats): ToolSection[] {
 
 // --- Main Component ---
 
-export function AllToolsView(props: { onNavigate: (viewId: ViewId) => void }) {
+export function AllToolsView(props: { onNavigate: (viewId: ViewId | string) => void }) {
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
   const stats = useEcosystemStats();
@@ -480,7 +508,8 @@ export function AllToolsView(props: { onNavigate: (viewId: ViewId) => void }) {
   );
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto">
+    <div className="p-6 max-w-[1400px] mx-auto space-y-4">
+      <PageDescriptionBanner pageId="all-tools" />
       {/* Header */}
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>

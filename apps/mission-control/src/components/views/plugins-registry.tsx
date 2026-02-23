@@ -34,6 +34,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 
 // --- Types (mirror plugin-scanner.ts) ---
 
@@ -786,7 +787,8 @@ export function PluginsRegistry() {
   }, []);
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-auto p-6 space-y-4">
+      <PageDescriptionBanner pageId="plugins" />
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">

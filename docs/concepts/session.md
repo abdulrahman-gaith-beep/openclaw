@@ -63,7 +63,8 @@ All session state is **owned by the gateway** (the “master” OpenClaw). UI cl
 ## Where state lives
 
 - On the **gateway host**:
-  - Store file: `~/.openclaw/agents/<agentId>/sessions/sessions.json` (per agent).
+  - **Session metadata (primary):** `~/.openclaw/chat.db` — SQLite `sessions` table. Used by default; set `OPENCLAW_SESSION_STORE_SQLITE=0` to use JSON-only.
+  - **Session metadata (legacy):** `~/.openclaw/agents/<agentId>/sessions/sessions.json` — fallback and dual-write target. Run `pnpm backfill:sessions` to migrate existing JSON into `chat.db`.
 - Transcripts: `~/.openclaw/agents/<agentId>/sessions/<SessionId>.jsonl` (Telegram topic sessions use `.../<SessionId>-topic-<threadId>.jsonl`).
 - The store is a map `sessionKey -> { sessionId, updatedAt, ... }`. Deleting entries is safe; they are recreated on demand.
 - Group entries may include `displayName`, `channel`, `subject`, `room`, and `space` to label sessions in UIs.

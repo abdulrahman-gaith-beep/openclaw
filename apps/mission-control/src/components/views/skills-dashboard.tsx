@@ -21,6 +21,7 @@ import {
   DASHBOARD_RECOMMENDED_SKILLS,
   type RecommendedSkill,
 } from "@/lib/recommended-skills";
+import { PageDescriptionBanner } from "@/components/guide/page-description-banner";
 
 // --- Types ---
 
@@ -545,7 +546,8 @@ export function SkillsDashboard() {
   const hasAnyFilter = sourceFilter !== "all" || categoryFilter !== "all" || searchQuery.length > 0;
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-auto p-6 space-y-4">
+      <PageDescriptionBanner pageId="skills" />
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">

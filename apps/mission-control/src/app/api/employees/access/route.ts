@@ -68,7 +68,7 @@ export const GET = withApiGuard(async (request: NextRequest) => {
   } catch (error) {
     return handleApiError(error, "Failed to load employee access");
   }
-}, ApiGuardPresets.read);
+}, { ...ApiGuardPresets.read, requireWorkspaceRole: "owner" });
 
 export const POST = withApiGuard(async (request: NextRequest) => {
   try {
@@ -102,4 +102,4 @@ export const POST = withApiGuard(async (request: NextRequest) => {
   } catch (error) {
     return handleApiError(error, "Failed to update employee access");
   }
-}, ApiGuardPresets.write);
+}, { ...ApiGuardPresets.write, requireWorkspaceRole: "owner" });

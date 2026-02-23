@@ -508,6 +508,23 @@ function getMigrations(): MigrationDefinition[] {
         `);
       },
     },
+    {
+      id: "2026-02-23-014-dashboard-role",
+      description: "Add dashboard_role to profile_workspaces for viewer/member/admin/owner.",
+      up: (db) => {
+        ensureColumn(
+          db,
+          "profile_workspaces",
+          "dashboard_role",
+          "TEXT CHECK(dashboard_role IS NULL OR dashboard_role IN ('owner','admin','member','viewer'))"
+        );
+        // Backfill: owner->owner, shared->member
+        db.exec(`
+          UPDATE profile_workspaces SET dashboard_role = 'owner' WHERE role = 'owner' AND (dashboard_role IS NULL OR dashboard_role = '');
+          UPDATE profile_workspaces SET dashboard_role = 'member' WHERE role = 'shared' AND (dashboard_role IS NULL OR dashboard_role = '');
+        `);
+      },
+    },
   ];
 }
 
@@ -849,16 +866,27 @@ export interface ActivityEntry {
   created_at: string;
 }
 
+/**
+ * Log an activity entry. workspace_id is REQUIRED to prevent cross-workspace
+ * dashboard activity leakage. Throws if workspace_id is missing or empty.
+ */
 export function logActivity(data: {
   id: string;
   type: string;
   agent_id?: string;
   task_id?: string;
   mission_id?: string;
-  workspace_id?: string;
+  workspace_id: string;
   message: string;
   metadata?: Record<string, unknown>;
 }): void {
+  const workspaceId = data.workspace_id?.trim();
+  if (!workspaceId) {
+    throw new Error(
+      "logActivity: workspace_id is required and must be non-empty. " +
+        "All activity must be explicitly scoped to a workspace to prevent cross-workspace leakage."
+    );
+  }
   getDb()
     .prepare(
       `INSERT INTO activity_log (id, type, agent_id, task_id, mission_id, workspace_id, message, metadata)
@@ -870,7 +898,7 @@ export function logActivity(data: {
       data.agent_id ?? null,
       data.task_id ?? null,
       data.mission_id ?? null,
-      data.workspace_id ?? "golden",
+      workspaceId,
       data.message,
       JSON.stringify(data.metadata ?? {})
     );
@@ -1060,10 +1088,13 @@ export interface Profile {
   created_at: string;
 }
 
+export type DashboardRole = "owner" | "admin" | "member" | "viewer";
+
 export interface ProfileWorkspace {
   profile_id: string;
   workspace_id: string;
   role: string;
+  dashboard_role?: string | null;
 }
 
 export interface ProfileIntegration {
@@ -1232,15 +1263,55 @@ export function deleteProfile(id: string): void {
 export function listProfileWorkspaces(
   profileId: string
 ): (ProfileWorkspace & { label: string; color: string })[] {
-  return getDb()
+  const rows = getDb()
     .prepare(
-      `SELECT pw.profile_id, pw.workspace_id, pw.role, w.label, w.color
+      `SELECT pw.profile_id, pw.workspace_id, pw.role, pw.dashboard_role, w.label, w.color
        FROM profile_workspaces pw
        JOIN workspaces w ON w.id = pw.workspace_id
        WHERE pw.profile_id = ?
        ORDER BY w.label`
     )
     .all(profileId) as (ProfileWorkspace & { label: string; color: string })[];
+  return rows;
+}
+
+/**
+ * Returns the profile's role for a workspace: 'owner' | 'shared', or null if no link.
+ */
+export function getProfileWorkspaceRole(
+  profileId: string,
+  workspaceId: string
+): "owner" | "shared" | null {
+  const row = getDb()
+    .prepare(
+      "SELECT role FROM profile_workspaces WHERE profile_id = ? AND workspace_id = ?"
+    )
+    .get(profileId, workspaceId) as { role: string } | undefined;
+  if (!row || (row.role !== "owner" && row.role !== "shared")) {
+    return null;
+  }
+  return row.role;
+}
+
+/**
+ * Returns the effective dashboard role for a profile in a workspace.
+ * Uses dashboard_role when set, else derives from role: owner->owner, shared->member.
+ */
+export function getProfileDashboardRole(
+  profileId: string,
+  workspaceId: string
+): DashboardRole | null {
+  const row = getDb()
+    .prepare(
+      "SELECT role, dashboard_role FROM profile_workspaces WHERE profile_id = ? AND workspace_id = ?"
+    )
+    .get(profileId, workspaceId) as { role: string; dashboard_role?: string | null } | undefined;
+  if (!row) {return null;}
+  const dr = row.dashboard_role?.trim();
+  if (dr && ["owner", "admin", "member", "viewer"].includes(dr)) {
+    return dr as DashboardRole;
+  }
+  return row.role === "owner" ? "owner" : "member";
 }
 
 export function linkProfileWorkspace(

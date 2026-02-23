@@ -128,7 +128,7 @@ export function LocalModelsSection() {
 
     return (
         <SettingsSection
-            id="local-models"
+            id="settings-local-models"
             icon={<Server className="w-5 h-5" />}
             title="Local Models"
             description="Manage locally-running AI models (Ollama, LM Studio, etc.)"

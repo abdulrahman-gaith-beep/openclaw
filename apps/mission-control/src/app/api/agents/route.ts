@@ -22,17 +22,22 @@ export const POST = withApiGuard(async (request: NextRequest) => {
   }
 }, ApiGuardPresets.write);
 
-// GET - List all agents
+// Capability: agent creation. Current gateway only supports the default "main" agent.
+// Multi-agent creation requires a newer gateway or manual config editing.
+const CAN_CREATE_AGENTS = false;
+
+// GET - List all agents and capabilities
 export const GET = withApiGuard(async () => {
   try {
     const client = getOpenClawClient();
     await client.connect();
     const agents = await client.listAgents();
-    return NextResponse.json({ agents });
+    return NextResponse.json({ agents, canCreate: CAN_CREATE_AGENTS });
   } catch (error) {
     if (isGatewayUnavailableError(error)) {
       return NextResponse.json({
         agents: [],
+        canCreate: false,
         degraded: true,
         connected: false,
         warning:

@@ -14,11 +14,11 @@ interface LiveTerminalProps {
 export function LiveTerminal({ open, onClose, activity }: LiveTerminalProps) {
   return (
     <aside
-      className={`absolute top-0 right-0 bottom-0 w-80 border-l border-border bg-background flex flex-col overflow-hidden z-30 font-mono text-xs shadow-[-4px_0_24px_oklch(0_0_0/0.15)] transition-transform duration-300 ease-in-out ${
+      className={`absolute top-0 right-0 bottom-0 w-80 border-l border-border glass-2 flex flex-col overflow-hidden z-30 font-mono text-xs shadow-[-4px_0_24px_oklch(0_0_0/0.15)] transition-transform duration-300 ease-in-out ${
         open ? "translate-x-0" : "translate-x-full"
       }`}
     >
-      <div className="p-4 border-b border-border bg-card/50 flex justify-between items-center">
+      <div className="p-4 border-b border-border flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Monitor className="w-4 h-4 text-primary" />
           <span className="font-bold tracking-wide text-sm">LIVE TERMINAL</span>
